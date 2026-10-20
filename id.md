@@ -1,0 +1,5 @@
+Member: start_month	start_id	end_month	end_id
+Member1: 2025-06	5788	2025-06	10787
+Member2: 2025-05	10666	2025-05	15665
+Member3: 2025-03	21914	2025-04	2522
+Member4: 2025-03	1914	2025-03	6913

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Project Data (STRICT: Do NOT commit scraped raw data or binaries)
+data/
+downloads/
+sources/
+bulk/
+*.tar.gz
+*.tar
+*.gz
+*.zip
+*.parquet
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & Benchmark artifacts
+*.log
+benchmarks/output/
