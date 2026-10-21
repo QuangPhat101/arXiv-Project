@@ -1,10 +1,22 @@
 """Utility Module: Rate Limiting, Retry Mechanisms, and Logging.
 
-Assigned to: Khôi (Member1)
+Assigned to: Khôi
 Purpose:
     Provide centralized utilities for controlling network request frequency,
     handling transient network/rate-limiting errors with exponential backoff,
     and managing project-wide logging.
+
+Requirements for Member1:
+    1. Implement RateLimiter using monotonic clock (`time.monotonic()`) to avoid
+       clock drift issues. Calculate elapsed time since previous request; only
+       sleep for the remaining interval (`min_interval - elapsed`). If elapsed >= min_interval,
+       return 0.0 immediately without sleeping.
+    2. Ensure arXiv requests share ONE coordinated rate limiter (arxiv_rate_limiter = 3.0s),
+       preventing 403 blocks across discovery and download calls.
+    3. Implement retry_with_backoff decorator catching requests.RequestException,
+       retrying on status codes (403, 429, 500, 502, 503, 504), applying exponential delay
+       with backoff factor, and re-raising on final failure.
+    4. Implement setup_logger() with timestamped format and optional file output.
 """
 
 from __future__ import annotations
@@ -19,7 +31,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 class RateLimiter:
-    """A token-bucket or time-window rate limiter.
+    """Thread-safe time-window rate limiter using monotonic clock.
 
     Ensures that consecutive requests to a specific domain or service
     are separated by at least `min_interval` seconds. Computes elapsed time
@@ -27,7 +39,7 @@ class RateLimiter:
 
     Attributes:
         min_interval (float): Minimum seconds between two consecutive requests.
-        last_request_time (float): Timestamp of the last processed request.
+        last_request_time (float): Monotonic timestamp of the last processed request.
     """
 
     def __init__(self, min_interval: float) -> None:
@@ -42,16 +54,21 @@ class RateLimiter:
     def wait(self) -> float:
         """Wait if necessary to satisfy the minimum interval requirement.
 
-        Calculates the time elapsed since `last_request_time`. If the elapsed
-        time is less than `min_interval`, sleeps for the remaining duration.
-        Updates `last_request_time` to the current timestamp.
+        Calculates elapsed time since `last_request_time` using `time.monotonic()`.
+        If elapsed < min_interval, sleeps for `(min_interval - elapsed)`.
+        Updates `last_request_time` to current monotonic time.
 
         Returns:
             float: Number of seconds slept (0.0 if no sleep was needed).
         """
-        # TODO (Khôi): Calculate elapsed time since last_request_time.
-        # If elapsed < min_interval, sleep(min_interval - elapsed).
-        # Update self.last_request_time = time.time().
+        # TODO (Khôi - Member1):
+        # 1. now = time.monotonic()
+        # 2. elapsed = now - self.last_request_time
+        # 3. remaining = self.min_interval - elapsed
+        # 4. if remaining > 0: time.sleep(remaining); slept = remaining
+        # 5. else: slept = 0.0
+        # 6. self.last_request_time = time.monotonic()
+        # 7. return slept
         raise NotImplementedError("RateLimiter.wait() is not yet implemented.")
 
 
@@ -87,10 +104,16 @@ def retry_with_backoff(
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # TODO (Khôi): Implement retry loop with exponential backoff.
-            # Catch requests.RequestException, inspect status_code if available,
-            # sleep for current_delay, multiply by backoff_factor, and re-raise
-            # if max_retries is exceeded.
+            # TODO (Khôi - Member1):
+            # delay = initial_delay
+            # for attempt in range(1, max_retries + 1):
+            #     try:
+            #         return func(*args, **kwargs)
+            #     except Exception as exc:
+            #         # check if retryable (RequestException with response.status_code in retryable_statuses)
+            #         # if last attempt, re-raise exc
+            #         # time.sleep(delay)
+            #         # delay *= backoff_factor
             raise NotImplementedError("retry_with_backoff decorator is not yet implemented.")
 
         return wrapper  # type: ignore[return-value]
@@ -116,6 +139,7 @@ def setup_logger(
     Returns:
         logging.Logger: Configured logger instance.
     """
-    # TODO (Khôi): Set up StreamHandler and FileHandler (if log_file given)
-    # with Formatter: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    # TODO (Khôi - Member1):
+    # Set up StreamHandler and optional FileHandler with Formatter:
+    # "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     raise NotImplementedError("setup_logger() is not yet implemented.")

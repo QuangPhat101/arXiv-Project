@@ -1,62 +1,54 @@
-# Phân Công Công Việc - Milestone 1: Data Crawling
+# Kế hoạch thực hiện: Milestone 1 - Thu thập dữ liệu
 
-Deadline: Tối 6/11/2026
+Hạn chót: Tối 6/11/2026
 
----
+## 1. Mục tiêu
 
-## Mục tiêu Milestone 1
+Thu thập dữ liệu bài báo từ arXiv theo các dải ID được giao. Với mỗi bài:
+- Lấy toàn bộ các phiên bản.
+- Tải mã nguồn LaTeX, giải nén và chỉ giữ lại các tệp `.tex` và `.bib` (loại bỏ hình ảnh).
+- Thu thập metadata của bài viết.
+- Thu thập danh sách trích dẫn từ Semantic Scholar.
 
-Cào dữ liệu từ arXiv: với mỗi paper trong dải ID được giao, lấy tất cả version, tải source LaTeX (chỉ giữ `.tex` và `.bib`, bỏ figure), lấy metadata, và cào reference qua Semantic Scholar. Kết quả cuối cùng gồm 2 bảng `papers` và `references`, một Jupyter Book report, và source code trên GitHub.
+Sản phẩm bàn giao gồm hai bảng dữ liệu `papers` và `references`, trang báo cáo Jupyter Book trên GitHub Pages, và toàn bộ mã nguồn trên GitHub.
 
----
+## 2. Cấu trúc mã nguồn
 
-## Những gì cần làm (tổng thể)
-
-### A. Source Code - Tool cào dữ liệu
-
-Viết 1 bộ tool Python gồm các module:
-
-```
+```text
 <group-repo>/
 ├── src/
-│   ├── crawler.py          # script chính, điều phối flow, nhận tham số dải ID
-│   ├── discovery.py         # resolve ID -> metadata + detect số version
-│   ├── downloader.py        # tải source từ export.arxiv.org
-│   ├── extractor.py         # giải nén tar.gz, chỉ giữ .tex/.bib
-│   ├── references.py        # query Semantic Scholar lấy references
-│   ├── utils.py             # rate limiter, retry, logging
+│   ├── crawler.py          # Điều phối quy trình thu thập dữ liệu
+│   ├── discovery.py        # Trích xuất metadata bài viết và danh sách phiên bản
+│   ├── downloader.py       # Tải tệp mã nguồn từ export.arxiv.org
+│   ├── extractor.py        # Giải nén archive, lọc lấy .tex và .bib
+│   ├── references.py       # Thu thập trích dẫn từ Semantic Scholar
+│   ├── utils.py            # Quản lý rate limit, cơ chế thử lại và ghi log
 │   └── requirements.txt
 └── README.md
 ```
 
-`discovery.py` - Dùng `arxiv` (v4.x), query `arxiv.Search(id_list=[...])` qua `arxiv.Client().results(search)`. Từ `.entry_id` (chứa suffix version mới nhất, VD: `2505.10666v3` -> 3 version), parse ra list versioned IDs. Trích metadata: `title`, `authors`, `published`, `updated`, `journal_ref`. Lưu `metadata.json`.
+Quy định kỹ thuật cho từng tệp trong `src/`:
 
-`downloader.py` - Với mỗi versioned ID, tải từ `https://export.arxiv.org/src/{versioned_id}`. Set `User-Agent` mô tả. KHÔNG dùng `arxiv.org` (bị 403). Tuân thủ 3s delay.
+- `discovery.py`: Dùng thư viện `arxiv` (bản 4.x trở lên, cú pháp `client.results(search)`). Gọi batch `arxiv.Search(id_list=[...])` qua `arxiv.Client().results(search)` theo từng cụm 50 đến 100 ID để tiết kiệm thời gian mạng. Đọc `.entry_id` chứa hậu tố phiên bản mới nhất (ví dụ `2505.10666v3`) để suy ra danh sách phiên bản từ v1 đến v3. Trích xuất metadata chuẩn gồm: `arxiv_id`, `title`, `authors`, `submission_date`, `revised_dates`, `venue`. Lưu kết quả vào `metadata.json`.
+- `downloader.py`: Tải mã nguồn từng phiên bản qua `https://export.arxiv.org/src/{versioned_id}`. Dùng `User-Agent` định danh nhóm. Không gửi request trực tiếp đến `arxiv.org` để tránh lỗi HTTP 403. Giãn cách tối thiểu 3 giây giữa các request.
+- `extractor.py`: Giải nén tệp tải về và chỉ giữ lại `.tex`, `.bib`. Xử lý tệp `tar.gz` bằng `tarfile` (lọc tệp trước khi giải nén, kiểm tra tránh lỗi Zip Slip), tệp `gzip` đơn, và bài viết dạng PDF thuần (tạo thư mục rỗng và đánh dấu hoàn thành qua file `.complete` chứa `PDF_ONLY`). Không chỉnh sửa nội dung văn bản bên trong tệp `.tex`. Giữ nguyên các thẻ `\includegraphics` và môi trường `figure`.
+- `references.py`: Gọi `GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{base_id}` với tham số fields dạng phẳng chứa `references.title,references.authors,references.year,references.publicationDate,references.venue,references.externalIds`. Lấy `ref_arxiv_id` từ `externalIds.ArXiv`, `ref_s2_id` từ `paperId`. Lưu toàn bộ danh sách trích xuất thô vào `references.json`. Giữ nguyên định dạng ID cũ của arXiv (ví dụ `hep-th/9901001`). Xử lý mã 429 bằng thuật toán exponential backoff.
+- `utils.py`: Cung cấp bộ rate limiter dùng chung bằng đồng hồ đơn điệu `time.monotonic()` (3 giây cho arXiv, 1 giây cho Semantic Scholar). Chỉ tính thời gian chờ cần thiết thay vì sleep cố định. Cung cấp decorator thử lại với exponential backoff và cấu hình ghi log.
+- `crawler.py`: Tiếp nhận tham số dòng lệnh `--month`, `--start`, `--end`, `--output`. Quản lý cơ chế kiểm tra checkpoint hai lớp (cấp bài báo và cấp phiên bản) để chạy tiếp khi bị ngắt quãng. Đo lường kích thước archive trước khi xóa và kích thước `.tex`, `.bib` sau trích xuất để phục vụ báo cáo hiệu năng. Bắt lỗi cục bộ theo từng bài viết để tránh dừng toàn bộ quy trình.
 
-`extractor.py` - Giải nén archive, chỉ giữ `.tex` và `.bib`. Xử lý: tar.gz (dùng `tarfile`, extract selective), gzip single-file, PDF-only (tạo thư mục rỗng). Không chỉnh nội dung `.tex` - giữ nguyên `\includegraphics`, `figure` environment.
+## 3. Phân chia dải ID
 
-`references.py` - Query `GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{base_id}`, fields: `references.title`, `references.authors`, `references.year`, `references.publicationDate`, `references.venue`, `references.externalIds`. Trích `ref_arxiv_id` từ `externalIds.ArXiv`, `ref_s2_id` từ `paperId`. Lưu tất cả references vào `references.json`. Rate limit: 1 req/s, xử lý 429 bằng exponential backoff.
+| Thành viên | Tháng | ID bắt đầu | ID kết thúc | Ghi chú |
+|:---|:---|:---|:---|:---|
+| Khôi (Thành viên 1) | 2025-06 | 5788 | 10787 | Dải đơn tháng |
+| Phát (Thành viên 2) | 2025-05 | 10666 | 15665 | Dải đơn tháng |
+| Bảo (Thành viên 3) | 2025-03 sang 2025-04 | 21914 | 2522 | Dải xuyên tháng, cần `--start-month-max` |
+| Khánh (Thành viên 4) | 2025-03 | 1914 | 6913 | Dải đơn tháng |
 
-`utils.py` - Rate limiter dùng chung (3s arXiv, 1s Semantic Scholar). Retry với exponential backoff. Logging. Đây là module ảnh hưởng hiệu năng nhiều nhất - rate limit chiếm >90% thời gian chạy, nên viết thông minh (chỉ delay khi cần, không delay thừa).
+Cấu trúc thư mục kết quả của mỗi bài:
 
-`crawler.py` - Script chính, nhận tham số:
-```bash
-python crawler.py --month 2505 --start 10666 --end 15665 --output ./data
-```
-Flow: Generate IDs -> Discovery -> Download từng version -> Extract -> References. Có checkpoint/resume. Thứ tự gọi module và cách pipeline ảnh hưởng lớn đến performance.
-
-### B. Cào dữ liệu - Mỗi người cào dải ID của mình
-
-| Thành viên | Tháng | Start ID | End ID |
-|:-----------|:------|:---------|:-------|
-| Khôi (Member1) | 2025-06 | 5788 | 10787 |
-| Phát (Member2) | 2025-05 | 10666 | 15665 |
-| Bảo (Member3) | 2025-03 -> 2025-04 | 21914 | 2522 |
-| Khánh (Member4) | 2025-03 | 1914 | 6913 |
-
-Cấu trúc output mỗi paper:
-```
-2505-10666/
+```text
+data/2505.10666/
 ├── metadata.json
 ├── references.json
 ├── v1/
@@ -67,252 +59,106 @@ Cấu trúc output mỗi paper:
 └── ...
 ```
 
-### C. Tổng hợp data - 2 bảng cuối cùng
+## 4. Đặc tả bảng dữ liệu đầu ra
 
 Bảng `papers`:
 
-| Column | Type |
-|:-------|:-----|
-| `arxiv_id` | string, non-null |
-| `title` | string |
-| `authors` | list of strings |
-| `submission_date` | ISO string |
-| `revised_dates` | list of strings |
-| `venue` | string, nullable |
+| Cột | Kiểu dữ liệu | Mô tả |
+|:---|:---|:---|
+| `arxiv_id` | Chuỗi ký tự, không null | ID gốc của bài viết |
+| `title` | Chuỗi ký tự | Tiêu đề bài viết |
+| `authors` | Danh sách chuỗi ký tự | Tên các tác giả |
+| `submission_date` | Chuỗi chuẩn ISO | Ngày nộp bản thảo đầu tiên |
+| `revised_dates` | Danh sách chuỗi ký tự | Danh sách các mốc thời gian cập nhật |
+| `venue` | Chuỗi ký tự, có thể null | Tạp chí xuất bản (`journal_ref`) nếu có |
 
-Bảng `references` (chỉ giữ row có `ref_arxiv_id`):
+Bảng `references` (chỉ lưu các dòng có `ref_arxiv_id`):
 
-| Column | Type |
-|:-------|:-----|
-| `arxiv_id` | string, non-null (citing paper) |
-| `ref_arxiv_id` | string, non-null |
-| `ref_title` | string |
-| `ref_authors` | list of strings |
-| `ref_submission_date` | string |
-| `ref_s2_id` | string (Semantic Scholar ID) |
+| Cột | Kiểu dữ liệu | Mô tả |
+|:---|:---|:---|
+| `arxiv_id` | Chuỗi ký tự, không null | ID bài viết trích dẫn |
+| `ref_arxiv_id` | Chuỗi ký tự, không null | ID bài viết được trích dẫn trên arXiv |
+| `ref_title` | Chuỗi ký tự | Tiêu đề bài viết được trích dẫn |
+| `ref_authors` | Danh sách chuỗi ký tự | Tác giả bài viết được trích dẫn |
+| `ref_submission_date` | Chuỗi ký tự | Ngày công bố |
+| `ref_s2_id` | Chuỗi ký tự | Mã định danh Semantic Scholar |
 
-### D. Report - Jupyter Book (GitHub Pages)
+## 5. Báo cáo Jupyter Book
 
-Repo riêng, deploy GitHub Pages. Link `github.io` nộp Moodle, không đổi sau nộp.
+Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 
-```
+```text
 <report-repo>/
-├── myst.yml                  # Config Jupyter Book v2 (thay _config.yml + _toc.yml)
+├── myst.yml                  # Cấu hình Jupyter Book v2
 ├── milestone1/
-│   ├── intro.md              # Giới thiệu project
-│   ├── implementation.md     # Kiến trúc tool, pipeline, edge cases
-│   ├── statistics.ipynb      # Thống kê data (tables + charts, auto-generate)
-│   └── performance.ipynb     # Benchmark (tables + charts, auto-generate)
+│   ├── intro.md              # Giới thiệu đồ án
+│   ├── implementation.md     # Tài liệu kiến trúc và xử lý ngoại lệ
+│   ├── statistics.ipynb      # Thống kê tập dữ liệu bằng code tự sinh
+│   └── performance.ipynb     # Đánh giá hiệu năng bằng code tự sinh
 └── README.md
 ```
 
-Nội dung bắt buộc:
+Nội dung báo cáo:
+- Tài liệu kỹ thuật: Mô tả chi tiết quy trình cào, thư viện sử dụng, luồng xử lý và cách giải quyết các trường hợp biên.
+- Thống kê dữ liệu: Tỷ lệ cào thành công, kích thước trung bình trước và sau khi lọc bỏ hình ảnh, số lượng trích dẫn trung bình, tỷ lệ bài có metadata trích dẫn.
+- Đo lường hiệu năng trên môi trường Google Colab CPU: Thời gian xử lý từng bài và toàn bộ dải ID, lượng RAM tiêu thụ đỉnh và trung bình qua `psutil`, dung lượng đĩa sử dụng. Toàn bộ bảng biểu và đồ thị phải được xuất tự động từ code, không dùng ảnh chụp màn hình.
 
-1. Implementation: scraping hoạt động ra sao, tools/libraries dùng, flow xử lý, edge cases.
+## 6. Phân công chi tiết
 
-2. Thống kê (figures/tables tự generate, KHÔNG screenshot):
-   - Số paper crawl thành công, overall success rate.
-   - Kích thước trung bình paper (bytes) trước/sau bỏ figure.
-   - Số references trung bình mỗi paper.
-   - Tỷ lệ thành công cào reference metadata.
+### Phát
+1. Xây dựng khung mã nguồn toàn bộ repository `src/`: Thiết lập đầy đủ các hàm, kiểu dữ liệu trả về, docstring và hướng dẫn triển khai cho từng thành viên.
+2. Hoàn thiện `crawler.py`: Xây dựng CLI tiếp nhận dải ID, cơ chế lưu vết checkpoint hai lớp, xử lý ngắt quãng và ghi log tổng kết.
+3. Khởi tạo kho lưu trữ báo cáo Jupyter Book với cấu hình `myst.yml`.
+4. Thu thập dữ liệu dải cá nhân (tháng 05/2025: 10666 đến 15665).
+5. Viết nội dung `implementation.md` trong báo cáo.
+6. Đánh giá mã nguồn và duyệt Pull Request từ các thành viên.
 
-3. Performance - đo trên Google Colab CPU-only:
-   - Running time: tổng 1 paper, trung bình mỗi paper, tổng entry discovery.
-   - Memory: peak RAM (`psutil`), average RAM (sample định kỳ), max disk, final output size.
-
-### E. Tiêu chí chấm điểm
-
-1. Report: đủ thông tin, figures/tables tự generate?
-2. Source Code: sạch, đọc được, chạy được?
-3. Discovery & Crawling: đúng phương pháp, đủ version coverage?
-4. Resulted Data: tỷ lệ thành công, data đúng format?
-5. Scraper's Performance: hiệu năng so với nhóm khác?
-
----
-
-## Phân công
-
-### Phát 
-
-1. Dựng skeleton toàn bộ repo code
-
-Tạo repo GitHub public, tạo sẵn các file `.py` với skeleton: tên hàm, docstring, tham số, return type - chưa implement logic. Push lên để 3 người kia clone về code.
-
-2. Code `crawler.py`
-
-Script chính điều phối toàn bộ flow:
-- Nhận tham số `--month`, `--start`, `--end`, `--output`.
-- Generate list base IDs từ range.
-- Với mỗi ID: gọi `discovery.discover_paper()` -> với mỗi version gọi `downloader.download_source()` -> `extractor.extract_tex_bib()` -> gọi `references.get_references()`.
-- Checkpoint/resume: ghi file tracking paper đã xong, skip khi chạy lại. VD: kiểm tra thư mục đã tồn tại hoặc lưu `completed.txt`.
-- Log tổng kết: thành công / fail / lý do fail.
-- Thiết kế pipeline thông minh: thứ tự gọi, xen kẽ hay tuần tự, xử lý error không dừng cả pipeline.
-
-3. Dựng khung Jupyter Book
-
-Tạo repo report riêng, config `myst.yml`, tạo file trống, build thử (`jupyter-book build --html`).
-
-4. Cào data phần mình
-
-Chạy tool cho dải `2025-05: 10666 -> 15665`.
-
-5. Viết phần report
-
-Viết `implementation.md`: kiến trúc tool, pipeline flow, rate limit, retry, checkpoint, quyết định kỹ thuật.
-
-6. Review & merge PR
-
----
-
-### Khôi 
-
-1. Code `utils.py`
-
-Module quan trọng nhất cho hiệu năng:
-- Rate limiter dùng chung: đảm bảo khoảng cách tối thiểu giữa requests (3s arXiv, 1s Semantic Scholar). Viết thông minh - chỉ delay khi cần, tính thời gian đã trôi qua từ request trước, nếu đủ rồi thì không sleep thêm.
-- Retry với exponential backoff: gặp 429/403/timeout -> chờ 2s, 4s, 8s,... tối đa N lần rồi skip + log.
-- Logging: ghi tiến trình, paper thành công/fail, lý do fail.
-
-2. Code `downloader.py`
-
-- Implement hàm tải source từ `https://export.arxiv.org/src/{versioned_id}`.
-- Dùng `urllib.request` hoặc `requests`.
-- Set `User-Agent` header (VD: `ArxivCrawler/1.0 (HCMUS-DS-project)`).
-- Gọi rate limiter từ `utils.py`.
-- Xử lý lỗi: 404 (không tồn tại), 403 (bị block), timeout -> retry hoặc skip + log.
-- Lưu file vào thư mục tạm.
-
-3. Cào data phần mình
-
-Chạy tool cho dải `2025-06: 5788 -> 10787`.
-
-4. Benchmark performance trên Google Colab
-
-Chạy benchmark trên Colab CPU-only với ~100-200 paper:
-- Running time: `time.time()` đo tổng 1 paper, trung bình, riêng phase discovery.
-- Peak RAM: `psutil.Process().memory_info().rss` hoặc `/usr/bin/time -v`.
-- Average RAM: thread phụ sample `psutil` mỗi 5s, tính trung bình.
-- Disk: `shutil.disk_usage()` hoặc `!du -sh ./data`.
-- Final output size: tổng dung lượng output.
-
-Khôi viết `utils.py` nên hiểu rõ rate limiter ảnh hưởng performance ra sao -> phân tích benchmark sâu hơn.
-
-5. Viết phần report
-
-Viết `performance.ipynb`: bảng + biểu đồ benchmark (tự generate), phân tích bottleneck.
-
----
+### Khôi
+1. Hoàn thiện `utils.py`: Xây dựng bộ điều phối rate limit bằng `time.monotonic()`, decorator retry với exponential backoff và hàm thiết lập logger.
+2. Hoàn thiện `downloader.py`: Xây dựng hàm tải mã nguồn qua `export.arxiv.org`, hỗ trợ stream dữ liệu vào tệp tạm và tái sử dụng session.
+3. Thu thập dữ liệu dải cá nhân (tháng 06/2025: 5788 đến 10787).
+4. Thực hiện đo lường hiệu năng trên Google Colab CPU với mẫu 100 đến 200 bài.
+5. Viết nội dung `performance.ipynb` và phân tích các nút thắt cổ chai về thời gian mạng.
 
 ### Bảo
-
-1. Code `discovery.py`
-
-- Dùng `arxiv` (v4.x): `arxiv.Search(id_list=[base_id])` -> `arxiv.Client().results(search)`.
-- Đọc `.entry_id` -> parse suffix version (VD: URL chứa `v3` -> `["...v1", "...v2", "...v3"]`).
-- Trích metadata: `title`, `authors` (list string), `published` -> `submission_date`, `updated` -> `revised_dates`, `journal_ref` -> `venue` (nullable).
-- Lưu `metadata.json`.
-
-2. Code `references.py`
-
-- Query `GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{base_id}`.
-- Params: `fields=references.title,references.authors,references.year,references.publicationDate,references.venue,references.externalIds`.
-- Parse response: trích `ref_title`, `ref_authors`, `ref_submission_date`, `ref_arxiv_id` (từ `externalIds.ArXiv`), `ref_s2_id` (từ `paperId`).
-- Old-format arXiv ID (`hep-th/9901001`) -> giữ nguyên.
-- Paper chưa index -> `references.json` rỗng `[]`.
-- Rate limit 1 req/s, xử lý 429 bằng retry từ `utils.py`.
-
-3. Cào data phần mình
-
-Chạy tool cho dải `2025-03: 21914 -> 2025-04: 2522`.
-
-Cross 2 tháng: `2503.21914` -> hết tháng 03, rồi `2504.00001` -> `2504.02522`. Phối hợp Phát nếu `crawler.py` cần hỗ trợ.
-
-4. Tổng hợp data 4 người -> 2 bảng
-
-Viết script merge:
-- Đọc `metadata.json` × 4 -> bảng `papers` (schema mục C).
-- Đọc `references.json` × 4 -> bảng `references` (chỉ row có `ref_arxiv_id`).
-- Kiểm tra data quality: trùng, null, format.
-
-5. Tính thống kê
-
-Tổng paper thành công/thất bại, overall success rate, kích thước trung bình, số version trung bình, số ref trung bình, tỷ lệ ref có arXiv ID, tỷ lệ thành công Semantic Scholar.
-
-6. Viết phần report
-
-Viết `statistics.ipynb`: bảng + biểu đồ thống kê (tự generate), phân tích chất lượng data.
-
----
+1. Hoàn thiện `discovery.py`: Tích hợp thư viện `arxiv`, hỗ trợ truy vấn gom lô qua `discover_papers_batch` để trích xuất metadata và danh sách phiên bản.
+2. Hoàn thiện `references.py`: Gọi Semantic Scholar Graph API, bóc tách các trường dữ liệu trích dẫn và xử lý trường hợp bài chưa được đánh chỉ mục (HTTP 404).
+3. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 21914 sang tháng 04/2025: 2522).
+4. Viết kịch bản tổng hợp dữ liệu từ 4 thành viên thành hai bảng `papers` và `references`. Kiểm tra tính toàn vẹn và làm sạch dữ liệu trùng lặp.
+5. Tính toán các chỉ số thống kê và viết nội dung `statistics.ipynb`.
 
 ### Khánh
+1. Hoàn thiện `extractor.py`: Xây dựng hàm giải nén có chọn lọc, chỉ lưu tệp `.tex` và `.bib`, xử lý trường hợp bài PDF thuần và phòng chống tấn công Zip Slip.
+2. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 1914 đến 6913).
+3. Thiết lập GitHub Actions tự động build và xuất bản Jupyter Book lên GitHub Pages.
+4. Viết mã nguồn vẽ biểu đồ phân tích trong các notebook báo cáo.
+5. Soạn thảo phần giải thích biểu đồ và ghi nhận các trường hợp biên khi thu thập dữ liệu.
 
-1. Code `extractor.py`
+## 7. Kế hoạch thời gian
 
-- Nhận file archive đã tải, giải nén + chỉ giữ `.tex` và `.bib`.
-- Kiểm tra loại file:
-  - tar.gz: `tarfile.open()`, duyệt members, chỉ extract file đuôi `.tex`/`.bib` vào `v{n}/`.
-  - gzip single-file: `gzip.open()`, kiểm tra nếu `.tex` thì lưu.
-  - PDF-only / format lạ: tạo `v{n}/` rỗng, log lại.
-- Không chỉnh sửa nội dung `.tex`: giữ nguyên `\includegraphics`, `figure`.
+### Tuần 1 (20/10 đến 26/10): Thiết lập khung và hoàn thiện mã nguồn
+- Phát: Dựng khung skeleton hai repository và hoàn thiện `crawler.py`.
+- Khôi: Hoàn thiện `utils.py` và `downloader.py`, tạo Pull Request.
+- Bảo: Hoàn thiện `discovery.py` và `references.py`, tạo Pull Request.
+- Khánh: Hoàn thiện `extractor.py`, tạo Pull Request.
+- Phát: Đánh giá mã nguồn và tích hợp vào nhánh chính.
 
-2. Cào data phần mình
+### Tuần 2 (27/10 đến 02/11): Thu thập dữ liệu diện rộng
+- Tất cả thành viên: Chạy bộ công cụ trên dải ID được giao.
+- Khánh: Kiểm tra quy trình build và deploy GitHub Pages.
 
-Chạy tool cho dải `2025-03: 1914 -> 6913`.
+### Tuần 3 (03/11 đến 05/11): Hợp nhất dữ liệu và hoàn thiện báo cáo
+- Bảo: Gộp dữ liệu thành hai bảng, tính toán số liệu và cập nhật `statistics.ipynb`.
+- Khôi: Chạy đo lường trên Google Colab và cập nhật `performance.ipynb`.
+- Khánh: Kiểm tra các biểu đồ tự sinh trong notebook báo cáo.
+- Phát: Hoàn thiện `implementation.md` và rà soát toàn bộ báo cáo.
 
-3. Deploy Jupyter Book lên GitHub Pages
+### Hạn nộp (Tối 06/11)
+- Nộp đường dẫn repository mã nguồn và trang GitHub Pages lên Moodle.
 
-- Config GitHub Actions auto-build + deploy.
-- Đảm bảo link `https://<username>.github.io/<report-repo>` ổn định - nộp Moodle, không đổi.
-- Test `jupyter-book build --html` không lỗi.
-- Viết `README.md` report repo.
+## 8. Quy chuẩn làm việc
 
-4. Tạo biểu đồ trong report
-
-Viết code generate biểu đồ (`matplotlib`/`plotly`) trong notebook:
-- Bar chart: paper thành công vs thất bại, chia 4 thành viên.
-- Histogram: phân bố số version.
-- Bar chart: kích thước trung bình.
-- Bar chart: số references trung bình.
-- Pie chart: tỷ lệ ref có arXiv ID vs không.
-- Bar/line chart: running time & memory.
-
-Đọc data từ file Bảo tổng hợp, tự generate khi build - KHÔNG screenshot.
-
-5. Viết phần report
-
-Giải thích biểu đồ + document edge cases gặp khi cào.
-
----
-
-
-## Timeline
-
-### Tuần 1 (20/10 -> 26/10): Setup & code
-- Phát: dựng skeleton 2 repo, push. Code `crawler.py`.
-- Khôi: code `utils.py` + `downloader.py`, tạo PR.
-- Bảo: code `discovery.py` + `references.py`, tạo PR.
-- Khánh: code `extractor.py`, tạo PR.
-- Phát: review + merge PR.
-
-### Tuần 2 (27/10 -> 2/11): Cào data
-- Tất cả: chạy tool cào data dải ID của mình.
-- Khánh: deploy Jupyter Book lên GitHub Pages.
-
-### Tuần 3 (3/11 -> 5/11): Tổng hợp & report
-- Bảo: merge data -> 2 bảng, thống kê, viết `statistics.ipynb`.
-- Khôi: benchmark Colab, viết `performance.ipynb`.
-- Khánh: tạo biểu đồ, viết phần report.
-- Phát: viết `implementation.md`, review toàn bộ.
-
-### Tối 6/11: Deadline
-- Nộp link repo code + link GitHub Pages lên Moodle.
-
----
-
-## Quy tắc
-
-- Git: mỗi người branch riêng, PR vào `main` để Phát review.
-- Rate limit: 3s arXiv, 1 req/s Semantic Scholar.
-- Không commit data vào repo code.
-- Giữ nguyên LaTeX: không xóa `\includegraphics`, `figure` trong `.tex`.
-- Blockers: báo ngay group chat.
+- Quản lý mã nguồn: Mỗi thành viên làm việc trên nhánh riêng, tạo Pull Request vào nhánh chính để rà soát trước khi gộp.
+- Giới hạn tốc độ: Bắt buộc giãn cách 3 giây cho arXiv và 1 giây cho Semantic Scholar.
+- Bảo mật dữ liệu: Không đẩy dữ liệu cào được lên kho lưu trữ mã nguồn.
+- Tính toàn vẹn nội dung: Giữ nguyên mã nguồn LaTeX gốc, không xóa bỏ thẻ hình ảnh trong tệp `.tex`.
