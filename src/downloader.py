@@ -88,13 +88,47 @@ def download_source(
     Raises:
         RuntimeError: If download fails due to network or server errors after all retries.
     """
-    # TODO (Khôi - Member1):
-    # 1. dest = Path(dest_path); dest.parent.mkdir(parents=True, exist_ok=True)
-    # 2. arxiv_rate_limiter.wait()
-    # 3. headers = {"User-Agent": DEFAULT_USER_AGENT}
-    # 4. req = session.get if session else requests.get
-    # 5. response = req(url, headers=headers, stream=True, timeout=timeout)
-    # 6. if response.status_code == 200: stream write to dest, return dest
-    # 7. if response.status_code == 404: return None
-    # 8. response.raise_for_status() -> bọc trong retry_with_backoff
-    raise NotImplementedError("download_source() is not yet implemented.")
+    dest = Path(dest_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    url = get_source_url(versioned_id)
+    headers = {"User-Agent": DEFAULT_USER_AGENT}
+    req_func = session.get if session is not None else requests.get
+
+    @retry_with_backoff(
+        max_retries=5,
+        initial_delay=3.0,
+        backoff_factor=2.0,
+        retryable_statuses=(403, 429, 500, 502, 503, 504),
+        logger=logger,
+    )
+    def _fetch_stream() -> Any:
+        arxiv_rate_limiter.wait()
+        resp = req_func(url, headers=headers, stream=True, timeout=timeout)
+        if resp.status_code == 404:
+            return resp
+        resp.raise_for_status()
+        return resp
+
+    try:
+        response = _fetch_stream()
+    except Exception as exc:
+        logger.error("[%s] Failed to download source archive after all retries: %s", versioned_id, exc)
+        raise RuntimeError(f"Download failed for {versioned_id}: {exc}") from exc
+
+    if response.status_code == 404:
+        logger.info("[%s] No LaTeX source archive available on arXiv (HTTP 404, PDF-only).", versioned_id)
+        return None
+
+    try:
+        with open(dest, "wb") as f:
+            for chunk in response.iter_content(chunk_size=65536):
+                if chunk:
+                    f.write(chunk)
+    except OSError as err:
+        logger.error("[%s] Failed to write downloaded archive to %s: %s", versioned_id, dest, err)
+        raise RuntimeError(f"File write failed for {versioned_id}: {err}") from err
+    finally:
+        response.close()
+
+    return dest
