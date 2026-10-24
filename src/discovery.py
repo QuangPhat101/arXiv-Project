@@ -27,8 +27,23 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from pathlib import Path
 from typing import Any, Optional, Sequence
+
+try:
+    import arxiv
+except ImportError:
+    arxiv = None  # type: ignore[assignment]
+
+try:
+    from src.utils import arxiv_rate_limiter
+except ImportError:
+    try:
+        from utils import arxiv_rate_limiter
+    except ImportError:
+        arxiv_rate_limiter = None
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +61,15 @@ def parse_version_count(entry_id: str) -> int:
     Returns:
         int: The highest version number (total versions available, minimum 1).
     """
-    # TODO (Bảo - Member3):
-    # Regex hoặc string split tìm trailing 'v(\\d+)'.
-    # Nếu không có 'v', trả về 1.
-    raise NotImplementedError("parse_version_count() is not yet implemented.")
+    if not entry_id:
+        return 1
+    match = re.search(r"v(\d+)$", str(entry_id).strip())
+    if match:
+        try:
+            return max(1, int(match.group(1)))
+        except ValueError:
+            return 1
+    return 1
 
 
 def generate_version_list(base_id: str, version_count: int) -> list[str]:
@@ -66,9 +86,23 @@ def generate_version_list(base_id: str, version_count: int) -> list[str]:
     Returns:
         list[str]: Ordered list of versioned ID strings.
     """
-    # TODO (Bảo - Member3):
-    # Trả về [f"{base_id}v{i}" for i in range(1, version_count + 1)]
-    raise NotImplementedError("generate_version_list() is not yet implemented.")
+    clean_base = re.sub(r"v\d+$", "", str(base_id).strip())
+    return [f"{clean_base}v{i}" for i in range(1, max(1, version_count) + 1)]
+
+
+def save_metadata(metadata: dict[str, Any], output_file: Path | str) -> None:
+    """Save metadata dictionary to a JSON file atomically.
+
+    Args:
+        metadata: Metadata dictionary to serialize.
+        output_file: Destination file path (e.g., path/to/metadata.json).
+    """
+    out_path = Path(output_file)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = out_path.with_name(f"{out_path.name}.tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, out_path)
 
 
 def discover_papers_batch(
@@ -90,16 +124,69 @@ def discover_papers_batch(
     Returns:
         dict[str, Optional[dict[str, Any]]]: Mapping from arxiv_id to its metadata dict (or None if not found).
     """
-    # TODO (Bảo - Member3):
-    # 1. Khởi tạo arxiv.Client() nếu client is None.
-    # 2. Chia arxiv_ids thành các chunk (50-100 IDs).
-    # 3. Với mỗi chunk:
-    #    - Tạo arxiv.Search(id_list=chunk)
-    #    - Duyệt qua client.results(search)
-    #    - Trích xuất metadata (arxiv_id, title, authors, submission_date, revised_dates, venue, versions)
-    #    - Nếu có output_dir: lưu vào {output_dir}/{arxiv_id}/metadata.json (ghi atomic qua file tạm)
-    # 4. Trả về dict kết quả ánh xạ {arxiv_id: metadata_dict}.
-    raise NotImplementedError("discover_papers_batch() is not yet implemented.")
+    if arxiv is None:
+        raise RuntimeError("The 'arxiv' library is not installed. Please run `pip install arxiv>=4.0.0`.")
+
+    cleaned_ids = [re.sub(r"v\d+$", "", str(aid).strip()) for aid in arxiv_ids if aid]
+    results: dict[str, Optional[dict[str, Any]]] = {aid: None for aid in cleaned_ids}
+    if not cleaned_ids:
+        return results
+
+    if client is None:
+        client = arxiv.Client(page_size=100, delay_seconds=3.0, num_retries=3)
+
+    chunk_size = 100
+    for i in range(0, len(cleaned_ids), chunk_size):
+        chunk = cleaned_ids[i : i + chunk_size]
+        try:
+            if arxiv_rate_limiter:
+                arxiv_rate_limiter.wait()
+            search = arxiv.Search(id_list=chunk)
+            for paper in client.results(search):
+                entry_id = paper.entry_id
+                raw_id = (
+                    paper.get_short_id()
+                    if hasattr(paper, "get_short_id")
+                    else entry_id.split("/")[-1]
+                )
+                base_id = re.sub(r"v\d+$", "", raw_id)
+
+                matched_id = base_id
+                if matched_id not in results and entry_id.split("/")[-1] in results:
+                    matched_id = entry_id.split("/")[-1]
+
+                v_count = parse_version_count(raw_id)
+                versions = generate_version_list(matched_id, v_count)
+
+                title = paper.title.strip().replace("\n", " ") if paper.title else ""
+                authors = [author.name for author in paper.authors] if paper.authors else []
+                sub_date = paper.published.isoformat() if paper.published else None
+                rev_dates = (
+                    [paper.updated.isoformat()]
+                    if paper.updated and paper.updated != paper.published
+                    else []
+                )
+                venue = paper.journal_ref if paper.journal_ref else None
+
+                metadata = {
+                    "arxiv_id": matched_id,
+                    "title": title,
+                    "authors": authors,
+                    "submission_date": sub_date,
+                    "revised_dates": rev_dates,
+                    "venue": venue,
+                    "versions": versions,
+                }
+                results[matched_id] = metadata
+
+                if output_dir:
+                    paper_dir = Path(output_dir) / matched_id
+                    save_metadata(metadata, paper_dir / "metadata.json")
+
+        except Exception as exc:
+            logger.error("Error during batch discovery for chunk [%s...%s]: %s", chunk[0], chunk[-1], exc)
+
+    return results
 
 
 def discover_paper(
@@ -118,19 +205,6 @@ def discover_paper(
         Optional[dict[str, Any]]: Dictionary containing the extracted metadata,
         or None if the paper was not found or query failed.
     """
-    # TODO (Bảo - Member3):
-    # Có thể gọi discover_papers_batch([arxiv_id], output_dir=output_dir, client=client)[arxiv_id]
-    raise NotImplementedError("discover_paper() is not yet implemented.")
-
-
-def save_metadata(metadata: dict[str, Any], output_file: Path | str) -> None:
-    """Save metadata dictionary to a JSON file atomically.
-
-    Args:
-        metadata: Metadata dictionary to serialize.
-        output_file: Destination file path (e.g., path/to/metadata.json).
-    """
-    # TODO (Bảo - Member3):
-    # Tạo thư mục cha nếu chưa có.
-    # Ghi ra file tạm .tmp trước, sau đó replace vào output_file để đảm bảo tính nguyên tử (atomic).
-    raise NotImplementedError("save_metadata() is not yet implemented.")
+    clean_id = re.sub(r"v\d+$", "", str(arxiv_id).strip())
+    batch_res = discover_papers_batch([clean_id], output_dir=output_dir, client=client)
+    return batch_res.get(clean_id)

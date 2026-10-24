@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -44,6 +46,9 @@ logger = logging.getLogger(__name__)
 
 S2_GRAPH_API_URL = "https://api.semanticscholar.org/graph/v1/paper"
 S2_FIELDS = "references.title,references.authors,references.year,references.publicationDate,references.venue,references.externalIds"
+
+
+_s2_cooldown_until: float = 0.0
 
 
 def fetch_s2_paper_data(
@@ -73,16 +78,73 @@ def fetch_s2_paper_data(
     Raises:
         RuntimeError: If request fails due to server/network errors after all retries.
     """
-    # TODO (Bảo - Member3):
-    # 1. s2_rate_limiter.wait()
-    # 2. headers = {}
-    #    if api_key: headers["x-api-key"] = api_key
-    # 3. req = session.get if session else requests.get
-    # 4. response = req(f"{S2_GRAPH_API_URL}/arXiv:{arxiv_id}", params={"fields": S2_FIELDS}, headers=headers, timeout=timeout)
-    # 5. if response.status_code == 404: return None (paper not indexed)
-    # 6. response.raise_for_status() -> bọc trong retry
-    # 7. return response.json()
-    raise NotImplementedError("fetch_s2_paper_data() is not yet implemented.")
+    global _s2_cooldown_until
+    if requests is None:
+        raise RuntimeError("The 'requests' library is not installed.")
+
+    now = time.monotonic()
+    if now < _s2_cooldown_until:
+        raise RuntimeError(f"Semantic Scholar is cooling down after HTTP 429 (retry in {_s2_cooldown_until - now:.1f}s)")
+
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["x-api-key"] = api_key
+
+    url = f"{S2_GRAPH_API_URL}/arXiv:{arxiv_id}"
+    params = {"fields": S2_FIELDS}
+
+    max_retries = 3
+    delay = 1.5
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            s2_rate_limiter.wait()
+            req_func = session.get if session else requests.get
+            response = req_func(url, params=params, headers=headers, timeout=timeout)
+
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 404:
+                logger.debug("[%s] Paper is not indexed yet on Semantic Scholar (HTTP 404).", arxiv_id)
+                return None
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After")
+                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else 60.0
+                _s2_cooldown_until = time.monotonic() + cooldown
+                logger.warning("[%s] S2 returned 429 Too Many Requests. Cooling down for %.1fs.", arxiv_id, cooldown)
+                raise RuntimeError(f"Semantic Scholar 429 Rate Limited. Cooling down for {cooldown:.1f}s.")
+            if response.status_code in (500, 502, 503, 504):
+                if attempt < max_retries:
+                    logger.warning(
+                        "[%s] S2 request failed with HTTP %d (attempt %d/%d). Retrying in %.1fs...",
+                        arxiv_id,
+                        response.status_code,
+                        attempt,
+                        max_retries,
+                        delay,
+                    )
+                    time.sleep(delay)
+                    delay *= 2.0
+                continue
+
+            response.raise_for_status()
+
+        except Exception as exc:
+            if attempt == max_retries:
+                logger.error("[%s] S2 request failed after %d retries: %s", arxiv_id, max_retries, exc)
+                raise RuntimeError(f"Semantic Scholar request failed for {arxiv_id}: {exc}") from exc
+            logger.warning(
+                "[%s] Transient network error (attempt %d/%d): %s. Retrying in %.1fs...",
+                arxiv_id,
+                attempt,
+                max_retries,
+                exc,
+                delay,
+            )
+            time.sleep(delay)
+            delay *= 2.0
+
+    raise RuntimeError(f"Semantic Scholar request failed for {arxiv_id} after {max_retries} attempts.")
 
 
 def parse_references(raw_data: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -102,12 +164,62 @@ def parse_references(raw_data: Optional[dict[str, Any]]) -> list[dict[str, Any]]
     Returns:
         list[dict[str, Any]]: Parsed list of reference dicts (empty list if no references or unindexed).
     """
-    # TODO (Bảo - Member3):
-    # 1. If not raw_data or "references" not in raw_data: return [].
-    # 2. Iterate over raw_data.get("references", []).
-    # 3. Extract fields theo schema bảng 'references'.
-    # 4. Trả về list dicts.
-    raise NotImplementedError("parse_references() is not yet implemented.")
+    if not raw_data or not isinstance(raw_data, dict):
+        return []
+
+    raw_refs = raw_data.get("references")
+    if not raw_refs or not isinstance(raw_refs, list):
+        return []
+
+    parsed: list[dict[str, Any]] = []
+    for item in raw_refs:
+        if not item or not isinstance(item, dict):
+            continue
+
+        ext_ids = item.get("externalIds") or {}
+        ref_arxiv_id = None
+        if isinstance(ext_ids, dict):
+            for k, v in ext_ids.items():
+                if k.lower() == "arxiv":
+                    ref_arxiv_id = v
+                    break
+
+        authors_raw = item.get("authors") or []
+        ref_authors = [
+            a.get("name")
+            for a in authors_raw
+            if isinstance(a, dict) and a.get("name")
+        ]
+
+        ref_sub_date = item.get("publicationDate")
+        if not ref_sub_date and item.get("year"):
+            ref_sub_date = str(item.get("year"))
+
+        parsed.append({
+            "ref_arxiv_id": ref_arxiv_id,
+            "ref_s2_id": item.get("paperId"),
+            "ref_title": item.get("title"),
+            "ref_authors": ref_authors,
+            "ref_submission_date": ref_sub_date,
+            "ref_venue": item.get("venue"),
+        })
+
+    return parsed
+
+
+def save_references(references: list[dict[str, Any]], output_file: Path | str) -> None:
+    """Save reference list to a JSON file atomically.
+
+    Args:
+        references: List of reference dicts to serialize.
+        output_file: Target file path (e.g., path/to/references.json).
+    """
+    out_path = Path(output_file)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = out_path.with_name(f"{out_path.name}.tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(references, f, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, out_path)
 
 
 def get_references(
@@ -130,22 +242,15 @@ def get_references(
     Returns:
         list[dict[str, Any]]: List of parsed references.
     """
-    # TODO (Bảo - Member3):
-    # 1. raw_data = fetch_s2_paper_data(arxiv_id, api_key=api_key, session=session).
-    # 2. refs = parse_references(raw_data).
-    # 3. If output_dir: save_references(refs, Path(output_dir) / arxiv_id / "references.json").
-    # 4. Return refs.
-    raise NotImplementedError("get_references() is not yet implemented.")
+    clean_id = arxiv_id.strip()
+    if "v" in clean_id:
+        clean_id = clean_id.split("v")[0]
 
+    raw_data = fetch_s2_paper_data(clean_id, api_key=api_key, session=session)
+    refs = parse_references(raw_data)
 
-def save_references(references: list[dict[str, Any]], output_file: Path | str) -> None:
-    """Save reference list to a JSON file atomically.
+    if output_dir:
+        dest_file = Path(output_dir) / clean_id / "references.json"
+        save_references(refs, dest_file)
 
-    Args:
-        references: List of reference dicts to serialize.
-        output_file: Target file path (e.g., path/to/references.json).
-    """
-    # TODO (Bảo - Member3):
-    # Tạo thư mục cha nếu chưa có.
-    # Ghi vào file .tmp rồi replace vào output_file để đảm bảo tính nguyên tử.
-    raise NotImplementedError("save_references() is not yet implemented.")
+    return refs
