@@ -45,7 +45,7 @@ class TestExtractor(unittest.TestCase):
              "fig.png": b"\x89PNG", "main.pdf": b"%PDF-1.5"},
         )
         self.assertEqual(extract_tex_bib(archive, self.target), ExtractionResult.SUCCESS)
-        found = sorted(str(p.relative_to(self.target)) for p in self.target.rglob("*") if p.is_file())
+        found = sorted(p.relative_to(self.target).as_posix() for p in self.target.rglob("*") if p.is_file())
         self.assertEqual(found, ["main.tex", "refs.BIB", "sections/intro.tex"])
         self.assertEqual((self.target / "main.tex").read_bytes(), TEX)
 
