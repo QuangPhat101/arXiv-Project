@@ -22,10 +22,16 @@ Requirements for Member1:
 from __future__ import annotations
 
 import logging
+import sys
 import time
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar
+
+try:
+    import requests
+except ImportError:
+    requests = None  # type: ignore[assignment]
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -61,15 +67,17 @@ class RateLimiter:
         Returns:
             float: Number of seconds slept (0.0 if no sleep was needed).
         """
-        # TODO (Khôi - Member1):
-        # 1. now = time.monotonic()
-        # 2. elapsed = now - self.last_request_time
-        # 3. remaining = self.min_interval - elapsed
-        # 4. if remaining > 0: time.sleep(remaining); slept = remaining
-        # 5. else: slept = 0.0
-        # 6. self.last_request_time = time.monotonic()
-        # 7. return slept
-        raise NotImplementedError("RateLimiter.wait() is not yet implemented.")
+        now = time.monotonic()
+        elapsed = now - self.last_request_time
+        remaining = self.min_interval - elapsed
+        slept = 0.0
+
+        if self.last_request_time > 0.0 and remaining > 0.0:
+            time.sleep(remaining)
+            slept = remaining
+
+        self.last_request_time = time.monotonic()
+        return slept
 
 
 # Pre-configured instances for arXiv and Semantic Scholar
@@ -102,19 +110,48 @@ def retry_with_backoff(
         Decorated callable with retry logic.
     """
     def decorator(func: F) -> F:
+        func_name = getattr(func, "__name__", str(func))
+
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # TODO (Khôi - Member1):
-            # delay = initial_delay
-            # for attempt in range(1, max_retries + 1):
-            #     try:
-            #         return func(*args, **kwargs)
-            #     except Exception as exc:
-            #         # check if retryable (RequestException with response.status_code in retryable_statuses)
-            #         # if last attempt, re-raise exc
-            #         # time.sleep(delay)
-            #         # delay *= backoff_factor
-            raise NotImplementedError("retry_with_backoff decorator is not yet implemented.")
+            current_logger = logger or logging.getLogger(__name__)
+            delay = initial_delay
+
+            for attempt in range(1, max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as exc:
+                    is_retryable = False
+
+                    if requests and isinstance(exc, requests.RequestException):
+                        if exc.response is not None and exc.response.status_code in retryable_statuses:
+                            is_retryable = True
+                        elif isinstance(exc, (requests.Timeout, requests.ConnectionError)):
+                            is_retryable = True
+                    elif isinstance(exc, (TimeoutError, ConnectionError, OSError)):
+                        is_retryable = True
+
+                    if not is_retryable or attempt == max_retries:
+                        current_logger.error(
+                            "Function %s failed on attempt %d/%d with non-retryable error: %s",
+                            func_name,
+                            attempt,
+                            max_retries,
+                            exc,
+                        )
+                        raise
+
+                    current_logger.warning(
+                        "Attempt %d/%d for %s failed (%s). Retrying in %.2fs (backoff factor %.1f)...",
+                        attempt,
+                        max_retries,
+                        func_name,
+                        exc,
+                        delay,
+                        backoff_factor,
+                    )
+                    time.sleep(delay)
+                    delay *= backoff_factor
 
         return wrapper  # type: ignore[return-value]
 
@@ -139,7 +176,32 @@ def setup_logger(
     Returns:
         logging.Logger: Configured logger instance.
     """
-    # TODO (Khôi - Member1):
-    # Set up StreamHandler and optional FileHandler with Formatter:
-    # "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    raise NotImplementedError("setup_logger() is not yet implemented.")
+    configured_logger = logging.getLogger(name)
+    configured_logger.setLevel(level)
+
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    # Ensure stream handler exists
+    has_stream_handler = any(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in configured_logger.handlers
+    )
+    if not has_stream_handler:
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(formatter)
+        configured_logger.addHandler(stream_handler)
+
+    # Add file handler if log_file is specified
+    if log_file:
+        file_path = Path(log_file).resolve()
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        already_has_file = any(
+            isinstance(h, logging.FileHandler) and Path(h.baseFilename).resolve() == file_path
+            for h in configured_logger.handlers
+        )
+        if not already_has_file:
+            file_handler = logging.FileHandler(str(file_path), encoding="utf-8")
+            file_handler.setFormatter(formatter)
+            configured_logger.addHandler(file_handler)
+
+    return configured_logger
