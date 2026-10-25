@@ -138,53 +138,63 @@ def discover_papers_batch(
     chunk_size = 50
     for i in range(0, len(cleaned_ids), chunk_size):
         chunk = cleaned_ids[i : i + chunk_size]
-        try:
-            if arxiv_rate_limiter:
-                arxiv_rate_limiter.wait()
-            search = arxiv.Search(id_list=chunk)
-            for paper in client.results(search):
-                entry_id = paper.entry_id
-                raw_id = (
-                    paper.get_short_id()
-                    if hasattr(paper, "get_short_id")
-                    else entry_id.split("/")[-1]
-                )
-                base_id = re.sub(r"v\d+$", "", raw_id)
+        chunk_max_retries = 3
+        chunk_delay = 5.0
+        for attempt in range(1, chunk_max_retries + 1):
+            try:
+                if arxiv_rate_limiter:
+                    arxiv_rate_limiter.wait()
+                search = arxiv.Search(id_list=chunk)
+                for paper in client.results(search):
+                    entry_id = paper.entry_id
+                    raw_id = (
+                        paper.get_short_id()
+                        if hasattr(paper, "get_short_id")
+                        else entry_id.split("/")[-1]
+                    )
+                    base_id = re.sub(r"v\d+$", "", raw_id)
 
-                matched_id = base_id
-                if matched_id not in results and entry_id.split("/")[-1] in results:
-                    matched_id = entry_id.split("/")[-1]
+                    matched_id = base_id
+                    if matched_id not in results and entry_id.split("/")[-1] in results:
+                        matched_id = entry_id.split("/")[-1]
 
-                v_count = parse_version_count(raw_id)
-                versions = generate_version_list(matched_id, v_count)
+                    v_count = parse_version_count(raw_id)
+                    versions = generate_version_list(matched_id, v_count)
 
-                title = paper.title.strip().replace("\n", " ") if paper.title else ""
-                authors = [author.name for author in paper.authors] if paper.authors else []
-                sub_date = paper.published.isoformat() if paper.published else None
-                rev_dates = (
-                    [paper.updated.isoformat()]
-                    if paper.updated and paper.updated != paper.published
-                    else []
-                )
-                venue = paper.journal_ref if paper.journal_ref else None
+                    title = paper.title.strip().replace("\n", " ") if paper.title else ""
+                    authors = [author.name for author in paper.authors] if paper.authors else []
+                    sub_date = paper.published.isoformat() if paper.published else None
+                    rev_dates = (
+                        [paper.updated.isoformat()]
+                        if paper.updated and paper.updated != paper.published
+                        else []
+                    )
+                    venue = paper.journal_ref if paper.journal_ref else None
 
-                metadata = {
-                    "arxiv_id": matched_id,
-                    "title": title,
-                    "authors": authors,
-                    "submission_date": sub_date,
-                    "revised_dates": rev_dates,
-                    "venue": venue,
-                    "versions": versions,
-                }
-                results[matched_id] = metadata
+                    metadata = {
+                        "arxiv_id": matched_id,
+                        "title": title,
+                        "authors": authors,
+                        "submission_date": sub_date,
+                        "revised_dates": rev_dates,
+                        "venue": venue,
+                        "versions": versions,
+                    }
+                    results[matched_id] = metadata
 
-                if output_dir:
-                    paper_dir = Path(output_dir) / matched_id
-                    save_metadata(metadata, paper_dir / "metadata.json")
-
-        except Exception as exc:
-            logger.error("Error during batch discovery for chunk [%s...%s]: %s", chunk[0], chunk[-1], exc)
+                    if output_dir:
+                        paper_dir = Path(output_dir) / matched_id
+                        save_metadata(metadata, paper_dir / "metadata.json")
+                break
+            except Exception as exc:
+                if "429" in str(exc) or "Rate exceeded" in str(exc):
+                    if attempt < chunk_max_retries:
+                        logger.warning("arXiv API 429 for chunk [%s...%s]. Sleeping %.1fs before retry %d/%d...", chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries)
+                        time.sleep(chunk_delay)
+                        chunk_delay *= 2.0
+                        continue
+                logger.error("Error during batch discovery for chunk [%s...%s] after %d attempts: %s", chunk[0], chunk[-1], attempt, exc)
+                break
 
     return results
 
