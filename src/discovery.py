@@ -136,11 +136,11 @@ def discover_papers_batch(
     if client is None:
         client = arxiv.Client(page_size=100, delay_seconds=3.0, num_retries=3)
 
-    chunk_size = 50
+    chunk_size = 20
     for i in range(0, len(cleaned_ids), chunk_size):
         chunk = cleaned_ids[i : i + chunk_size]
         chunk_max_retries = 3
-        chunk_delay = 5.0
+        chunk_delay = 6.0
         for attempt in range(1, chunk_max_retries + 1):
             try:
                 if arxiv_rate_limiter:
@@ -188,7 +188,7 @@ def discover_papers_batch(
                         save_metadata(metadata, paper_dir / "metadata.json")
                 break
             except Exception as exc:
-                if "429" in str(exc) or "Rate exceeded" in str(exc):
+                if any(code in str(exc) for code in ["429", "503", "500", "Rate exceeded", "HTTPError"]):
                     if attempt < chunk_max_retries:
                         logger.warning("arXiv API 429 for chunk [%s...%s]. Sleeping %.1fs before retry %d/%d...", chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries)
                         time.sleep(chunk_delay)
