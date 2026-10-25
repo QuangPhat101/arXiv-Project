@@ -71,7 +71,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(mock_func.call_count, 1)
 
     def test_setup_logger(self):
-        with TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory(ignore_cleanup_errors=True) as tmp_dir:
             log_path = Path(tmp_dir) / "test.log"
             logger = setup_logger("test_custom_logger", log_file=log_path, level=logging.DEBUG)
             logger.info("Hello world log test")

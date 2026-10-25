@@ -84,7 +84,9 @@ def fetch_s2_paper_data(
 
     now = time.monotonic()
     if now < _s2_cooldown_until:
-        raise RuntimeError(f"Semantic Scholar is cooling down after HTTP 429 (retry in {_s2_cooldown_until - now:.1f}s)")
+        wait_s = _s2_cooldown_until - now
+        logger.warning("[%s] Waiting for S2 cooldown (%.1fs remaining)...", arxiv_id, wait_s)
+        time.sleep(wait_s)
 
     headers: dict[str, str] = {}
     if api_key:
@@ -109,10 +111,13 @@ def fetch_s2_paper_data(
                 return None
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else 60.0
+                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else 30.0
                 _s2_cooldown_until = time.monotonic() + cooldown
-                logger.warning("[%s] S2 returned 429 Too Many Requests. Cooling down for %.1fs.", arxiv_id, cooldown)
-                raise RuntimeError(f"Semantic Scholar 429 Rate Limited. Cooling down for {cooldown:.1f}s.")
+                if attempt < max_retries:
+                    logger.warning("[%s] S2 429 Rate Limit. Sleeping %.1fs before retry %d/%d.", arxiv_id, cooldown, attempt + 1, max_retries)
+                    time.sleep(cooldown)
+                    continue
+                raise RuntimeError(f"Semantic Scholar 429 Rate Limited after {max_retries} attempts.")
             if response.status_code in (500, 502, 503, 504):
                 if attempt < max_retries:
                     logger.warning(

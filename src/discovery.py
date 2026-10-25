@@ -139,8 +139,7 @@ def discover_papers_batch(
     for i in range(0, len(cleaned_ids), chunk_size):
         chunk = cleaned_ids[i : i + chunk_size]
         try:
-            if arxiv_rate_limiter:
-                arxiv_rate_limiter.wait()
+            # arxiv.Client enforces delay_seconds=3.0
             search = arxiv.Search(id_list=chunk)
             for paper in client.results(search):
                 entry_id = paper.entry_id
