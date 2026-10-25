@@ -84,7 +84,7 @@ class RateLimiter:
 # arXiv policy: max 1 request per 3 seconds
 # Semantic Scholar policy: 1 request per second without an API key
 arxiv_rate_limiter = RateLimiter(min_interval=3.0)
-s2_rate_limiter = RateLimiter(min_interval=1.0)
+s2_rate_limiter = RateLimiter(min_interval=1.5)
 
 
 def retry_with_backoff(
@@ -126,9 +126,11 @@ def retry_with_backoff(
                     if requests and isinstance(exc, requests.RequestException):
                         if exc.response is not None and exc.response.status_code in retryable_statuses:
                             is_retryable = True
-                        elif isinstance(exc, (requests.Timeout, requests.ConnectionError)):
+                        elif isinstance(exc, (requests.Timeout, requests.ConnectionError, requests.exceptions.ChunkedEncodingError)):
                             is_retryable = True
-                    elif isinstance(exc, (TimeoutError, ConnectionError, OSError)):
+                        elif "IncompleteRead" in str(exc) or "Connection broken" in str(exc):
+                            is_retryable = True
+                    elif isinstance(exc, (TimeoutError, ConnectionError, OSError)) or "IncompleteRead" in str(exc):
                         is_retryable = True
 
                     if not is_retryable or attempt == max_retries:

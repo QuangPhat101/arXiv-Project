@@ -38,7 +38,10 @@ try:
     from src.downloader import download_source
     from src.extractor import ExtractionResult, extract_tex_bib
     from src.references import get_references
-    from src.utils import setup_logger
+    from src.utils import setup_logger, s2_rate_limiter
+
+# Enforce safe 1.5s interval for Semantic Scholar (under 1 RPS quota)
+s2_rate_limiter.min_interval = 1.5
 except ImportError:
     from discovery import discover_paper, discover_papers_batch  # type: ignore[no-redef]
     from downloader import download_source  # type: ignore[no-redef]
@@ -349,16 +352,24 @@ def run_pipeline(
 
     try:
         # Phase 1: High-Performance Batch Discovery
-        logger.info("Phase 1: Running Batch Discovery for %d pending papers...", len(pending_ids))
+        missing_meta = [
+            aid for aid in pending_ids
+            if not (output_dir / aid / "metadata.json").is_file()
+            or not _read_json(output_dir / aid / "metadata.json")
+        ]
         metadata_cache: dict[str, Any] = {}
-        try:
-            for i in range(0, len(pending_ids), batch_size):
-                chunk = pending_ids[i:i + batch_size]
-                chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
-                if chunk_meta:
-                    metadata_cache.update(chunk_meta)
-        except NotImplementedError:
-            logger.info("Batch discovery not implemented yet by Member3; will fallback to single discovery.")
+        if missing_meta:
+            logger.info("Phase 1: Running Batch Discovery for %d papers lacking metadata...", len(missing_meta))
+            try:
+                for i in range(0, len(missing_meta), batch_size):
+                    chunk = missing_meta[i:i + batch_size]
+                    chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
+                    if chunk_meta:
+                        metadata_cache.update(chunk_meta)
+            except NotImplementedError:
+                logger.info("Batch discovery not implemented yet by Member3; will fallback to single discovery.")
+        else:
+            logger.info("Phase 1: Skipping remote discovery (100%% of metadata exists locally for %d papers).", len(pending_ids))
 
         # Phase 2: Process Download & Extraction per paper
         logger.info("Phase 2: Downloading & Extracting paper sources...")
