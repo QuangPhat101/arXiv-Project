@@ -136,8 +136,8 @@ def fetch_s2_paper_data(
 
         except Exception as exc:
             if attempt == max_retries:
-                logger.error("[%s] S2 request failed after %d retries: %s", arxiv_id, max_retries, exc)
-                raise RuntimeError(f"Semantic Scholar request failed for {arxiv_id}: {exc}") from exc
+                logger.warning("[%s] S2 request failed after %d retries (%s). Defaulting to empty references list.", arxiv_id, max_retries, exc)
+                return None
             logger.warning(
                 "[%s] Transient network error (attempt %d/%d): %s. Retrying in %.1fs...",
                 arxiv_id,
