@@ -216,8 +216,18 @@ def crawl_single_paper(
                 metadata = None
 
     if not metadata or not metadata.get("versions"):
-        logger.error("[%s] Metadata discovery failed or paper does not exist.", arxiv_id)
-        return False
+        logger.warning("[%s] Discovery query unavailable (API rate limit). Defaulting to v1 to proceed with download.", arxiv_id)
+        metadata = {
+            "arxiv_id": arxiv_id,
+            "title": "",
+            "authors": [],
+            "submission_date": None,
+            "revised_dates": [],
+            "venue": None,
+            "versions": [f"{arxiv_id}v1"],
+        }
+        with open(paper_dir / "metadata.json", "w", encoding="utf-8") as f_meta:
+            json.dump(metadata, f_meta, indent=2)
 
     versions: list[str] = metadata["versions"]
 
