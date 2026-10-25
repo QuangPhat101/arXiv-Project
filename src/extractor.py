@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 # Valid extensions to retain
 LATEX_EXTENSIONS = {".tex", ".bib"}
 
+GZIP_MAGIC = b"\x1f\x8b"
+# PDF and PostScript submissions carry no LaTeX source.
+NON_LATEX_MAGICS = (b"%PDF-", b"%!PS")
+
 
 class ExtractionResult(str, enum.Enum):
     SUCCESS = "SUCCESS"        # Found and extracted .tex and/or .bib files
@@ -80,13 +84,56 @@ def extract_tex_bib(
     Returns:
         ExtractionResult: SUCCESS, PDF_ONLY, or FAILED.
     """
-    # TODO (Khánh - Member4):
-    # 1. target = Path(target_dir); target.mkdir(parents=True, exist_ok=True)
-    # 2. if archive_path is None: return ExtractionResult.PDF_ONLY
-    # 3. archive = Path(archive_path)
-    # 4. Kiểm tra magic bytes / định dạng:
-    #    - Thử tarfile: lọc member is_latex_source_file(m.name), extract vào target
-    #    - Thử gzip: đọc text, ghi vào target / "main.tex"
-    #    - Nếu là PDF (%PDF-): return ExtractionResult.PDF_ONLY
-    # 5. Nếu gặp lỗi file hỏng: log error và return ExtractionResult.FAILED
-    raise NotImplementedError("extract_tex_bib() is not yet implemented.")
+    target = Path(target_dir)
+    target.mkdir(parents=True, exist_ok=True)
+    if archive_path is None:
+        return ExtractionResult.PDF_ONLY
+    archive = Path(archive_path)
+
+    try:
+        # Checked first: is_tarfile also recognises gzip-compressed tarballs.
+        if tarfile.is_tarfile(archive):
+            return _extract_tar(archive, target)
+
+        with archive.open("rb") as fh:
+            magic = fh.read(5)
+        if magic.startswith(GZIP_MAGIC):
+            with gzip.open(archive, "rb") as gz:
+                content = gz.read()
+            if content.startswith(NON_LATEX_MAGICS):
+                return ExtractionResult.PDF_ONLY
+            # Written as raw bytes so the LaTeX source is preserved byte-for-byte.
+            (target / "main.tex").write_bytes(content)
+            return ExtractionResult.SUCCESS
+        if magic.startswith(NON_LATEX_MAGICS):
+            return ExtractionResult.PDF_ONLY
+
+        logger.error("Unrecognised archive format: %s (magic=%r)", archive, magic)
+        return ExtractionResult.FAILED
+    except (tarfile.TarError, OSError, EOFError) as exc:
+        logger.error("Failed to extract %s: %s", archive, exc)
+        return ExtractionResult.FAILED
+
+
+def _extract_tar(archive: Path, target: Path) -> ExtractionResult:
+    """Copy only regular .tex/.bib members of a tarball into target, keeping subfolders."""
+    root = target.resolve()
+    extracted = 0
+    with tarfile.open(archive, "r:*") as tar:
+        for member in tar:
+            # Regular files only: symlinks, hardlinks and devices are never written.
+            if not member.isfile() or not is_latex_source_file(member.name):
+                continue
+            dest = (target / member.name).resolve()
+            if not dest.is_relative_to(root):
+                logger.warning("Skipping unsafe path in %s: %s", archive, member.name)
+                continue
+            src = tar.extractfile(member)
+            if src is None:
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with src, dest.open("wb") as out:
+                shutil.copyfileobj(src, out)
+            extracted += 1
+    # A tarball without any .tex/.bib (e.g. only figures + PDF) has no LaTeX source.
+    return ExtractionResult.SUCCESS if extracted else ExtractionResult.PDF_ONLY
