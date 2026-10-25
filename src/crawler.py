@@ -151,7 +151,7 @@ def mark_version_completed(version_dir: Path, status: str = "ok") -> None:
     os.replace(tmp_path, stamp_path)
 
 
-def is_paper_complete(paper_dir: Path) -> bool:
+def is_paper_complete(paper_dir: Path, require_references: bool = True) -> bool:
     """Validate whether all required components of a paper exist and are valid.
 
     Completion criteria:
@@ -172,7 +172,7 @@ def is_paper_complete(paper_dir: Path) -> bool:
 
     # Check references
     refs = _read_json(paper_dir / "references.json")
-    if not isinstance(refs, list):
+    if require_references and not isinstance(refs, list):
         return False
 
     # Check each version folder
@@ -194,6 +194,7 @@ def crawl_single_paper(
     session: Optional[Any] = None,
     s2_api_key: Optional[str] = None,
     metadata_cache: Optional[dict[str, Any]] = None,
+    skip_references: bool = False,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
@@ -234,7 +235,7 @@ def crawl_single_paper(
     # 2. Parallel / Async trigger for Semantic Scholar references
     # Fetch references while downloading sources to optimize overall wall-clock time
     refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
-    if not refs_exist:
+    if not refs_exist and not skip_references:
         try:
             get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
         except NotImplementedError:
@@ -305,7 +306,7 @@ def crawl_single_paper(
                 except OSError:
                     pass
 
-    return is_paper_complete(paper_dir)
+    return is_paper_complete(paper_dir, require_references=not skip_references)
 
 
 def run_pipeline(
@@ -315,6 +316,7 @@ def run_pipeline(
     checkpoint_file: Optional[Path] = None,
     batch_size: int = 100,
     s2_api_key: Optional[str] = None,
+    skip_references: bool = False,
 ) -> dict[str, Any]:
     """Execute the pipeline over target arXiv IDs with batch discovery and version-level resume."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -373,10 +375,14 @@ def run_pipeline(
                     session=session,
                     s2_api_key=s2_api_key,
                     metadata_cache=metadata_cache,
+                    skip_references=skip_references,
                 )
                 if success:
-                    mark_completed_atomic(checkpoint_file, arxiv_id)
-                    completed_ids.add(arxiv_id)
+                    # Without references.json the paper is not complete yet: keep it out of the
+                    # checkpoint so a later run with an S2 key fetches only its references.
+                    if not skip_references:
+                        mark_completed_atomic(checkpoint_file, arxiv_id)
+                        completed_ids.add(arxiv_id)
                     success_count += 1
                 else:
                     failed_papers[arxiv_id] = "Step failure (download/extraction/metadata)"
@@ -426,6 +432,7 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=Path("./data"), help="Output directory")
     parser.add_argument("--batch-size", type=int, default=100, help="Batch size for discovery API queries")
     parser.add_argument("--s2-api-key", type=str, default=None, help="Optional Semantic Scholar API Key")
+    parser.add_argument("--skip-references", action="store_true", help="Download sources only; fetch Semantic Scholar references on a later run")
     parser.add_argument("--no-resume", action="store_true", help="Disable checkpoint resumption")
     parser.add_argument("--profile", action="store_true", help="Monitor RAM consumption periodically via psutil for Colab benchmark")
     parser.add_argument("--log-file", type=Path, default=None, help="Optional log file path")
@@ -472,6 +479,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         resume=not args.no_resume,
         batch_size=args.batch_size,
         s2_api_key=args.s2_api_key,
+        skip_references=args.skip_references,
     )
 
     return 0 if summary["failed"] == 0 else 1
