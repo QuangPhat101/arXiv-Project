@@ -95,8 +95,8 @@ def fetch_s2_paper_data(
     url = f"{S2_GRAPH_API_URL}/arXiv:{arxiv_id}"
     params = {"fields": S2_FIELDS}
 
-    max_retries = 3
-    delay = 1.5
+    max_retries = 5
+    delay = 2.0
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -111,7 +111,8 @@ def fetch_s2_paper_data(
                 return None
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else 30.0
+                default_cooldown = 3.5 if api_key else 30.0
+                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else default_cooldown
                 _s2_cooldown_until = time.monotonic() + cooldown
                 if attempt < max_retries:
                     logger.warning("[%s] S2 429 Rate Limit. Sleeping %.1fs before retry %d/%d.", arxiv_id, cooldown, attempt + 1, max_retries)
@@ -136,8 +137,8 @@ def fetch_s2_paper_data(
 
         except Exception as exc:
             if attempt == max_retries:
-                logger.warning("[%s] S2 request failed after %d retries (%s). Defaulting to empty references list.", arxiv_id, max_retries, exc)
-                return None
+                logger.error("[%s] S2 request failed after %d retries (%s).", arxiv_id, max_retries, exc)
+                raise
             logger.warning(
                 "[%s] Transient network error (attempt %d/%d): %s. Retrying in %.1fs...",
                 arxiv_id,

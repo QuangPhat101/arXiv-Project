@@ -102,33 +102,32 @@ def download_source(
         retryable_statuses=(403, 429, 500, 502, 503, 504),
         logger=logger,
     )
-    def _fetch_stream() -> Any:
+    def _fetch_and_stream() -> Optional[Path]:
         arxiv_rate_limiter.wait()
         resp = req_func(url, headers=headers, stream=True, timeout=timeout)
         if resp.status_code == 404:
-            return resp
+            logger.info("[%s] No LaTeX source archive available on arXiv (HTTP 404, PDF-only).", versioned_id)
+            return None
         resp.raise_for_status()
-        return resp
+
+        tmp_dest = dest.with_name(f"{dest.name}.part")
+        try:
+            with open(tmp_dest, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=65536):
+                    if chunk:
+                        f.write(chunk)
+            tmp_dest.replace(dest)
+        except Exception as stream_err:
+            if tmp_dest.exists():
+                tmp_dest.unlink(missing_ok=True)
+            raise stream_err
+        finally:
+            resp.close()
+
+        return dest
 
     try:
-        response = _fetch_stream()
+        return _fetch_and_stream()
     except Exception as exc:
         logger.error("[%s] Failed to download source archive after all retries: %s", versioned_id, exc)
         raise RuntimeError(f"Download failed for {versioned_id}: {exc}") from exc
-
-    if response.status_code == 404:
-        logger.info("[%s] No LaTeX source archive available on arXiv (HTTP 404, PDF-only).", versioned_id)
-        return None
-
-    try:
-        with open(dest, "wb") as f:
-            for chunk in response.iter_content(chunk_size=65536):
-                if chunk:
-                    f.write(chunk)
-    except OSError as err:
-        logger.error("[%s] Failed to write downloaded archive to %s: %s", versioned_id, dest, err)
-        raise RuntimeError(f"File write failed for {versioned_id}: {err}") from err
-    finally:
-        response.close()
-
-    return dest
