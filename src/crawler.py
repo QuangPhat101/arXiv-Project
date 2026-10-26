@@ -39,15 +39,15 @@ try:
     from src.extractor import ExtractionResult, extract_tex_bib
     from src.references import get_references
     from src.utils import setup_logger, s2_rate_limiter
-
-# Enforce safe 1.5s interval for Semantic Scholar (under 1 RPS quota)
-s2_rate_limiter.min_interval = 1.5
 except ImportError:
     from discovery import discover_paper, discover_papers_batch  # type: ignore[no-redef]
     from downloader import download_source  # type: ignore[no-redef]
     from extractor import ExtractionResult, extract_tex_bib  # type: ignore[no-redef]
     from references import get_references  # type: ignore[no-redef]
-    from utils import setup_logger  # type: ignore[no-redef]
+    from utils import setup_logger, s2_rate_limiter  # type: ignore[no-redef]
+
+# Enforce safe 3.0s interval for Semantic Scholar
+s2_rate_limiter.min_interval = 3.0
 
 # Try importing tqdm for progress bar
 try:
@@ -394,6 +394,9 @@ def run_pipeline(
             except Exception as exc:
                 logger.exception("[%s] Unexpected exception: %s", arxiv_id, exc)
                 failed_papers[arxiv_id] = str(exc)
+
+            # Clean 3.0s cooldown between consecutive papers as requested
+            time.sleep(3.0)
 
     finally:
         if session:

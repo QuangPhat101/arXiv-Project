@@ -134,13 +134,13 @@ def discover_papers_batch(
         return results
 
     if client is None:
-        client = arxiv.Client(page_size=100, delay_seconds=3.0, num_retries=3)
+        client = arxiv.Client(page_size=100, delay_seconds=3.5, num_retries=3)
 
-    chunk_size = 20
+    chunk_size = 50
     for i in range(0, len(cleaned_ids), chunk_size):
         chunk = cleaned_ids[i : i + chunk_size]
-        chunk_max_retries = 3
-        chunk_delay = 6.0
+        chunk_max_retries = 4
+        chunk_delay = 15.0
         for attempt in range(1, chunk_max_retries + 1):
             try:
                 if arxiv_rate_limiter:
@@ -188,13 +188,32 @@ def discover_papers_batch(
                         save_metadata(metadata, paper_dir / "metadata.json")
                 break
             except Exception as exc:
-                if any(code in str(exc) for code in ["429", "503", "500", "Rate exceeded", "HTTPError"]):
+                exc_str = str(exc)
+                if any(code in exc_str for code in ["429", "Rate exceeded"]):
                     if attempt < chunk_max_retries:
-                        logger.warning("arXiv API 429 for chunk [%s...%s]. Sleeping %.1fs before retry %d/%d...", chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries)
+                        logger.warning(
+                            "arXiv API 429 (Rate limit) for chunk [%s...%s]. Cooling down for %.1fs before retry %d/%d...",
+                            chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries,
+                        )
                         time.sleep(chunk_delay)
                         chunk_delay *= 2.0
                         continue
-                logger.error("Error during batch discovery for chunk [%s...%s] after %d attempts: %s", chunk[0], chunk[-1], attempt, exc)
+                elif any(code in exc_str for code in ["503", "500", "502", "504", "HTTPError"]):
+                    if attempt < chunk_max_retries:
+                        logger.warning(
+                            "arXiv API server error (%s) for chunk [%s...%s]. Sleeping %.1fs before retry %d/%d...",
+                            exc, chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries,
+                        )
+                        time.sleep(chunk_delay)
+                        chunk_delay *= 1.5
+                        continue
+                logger.error(
+                    "Error during batch discovery for chunk [%s...%s] after %d attempts: %s",
+                    chunk[0], chunk[-1], attempt, exc,
+                )
+                if "429" in exc_str:
+                    logger.warning("Pausing 25s for cooldown before attempting next chunk...")
+                    time.sleep(25.0)
                 break
 
     return results

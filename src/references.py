@@ -111,7 +111,7 @@ def fetch_s2_paper_data(
                 return None
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                default_cooldown = 3.5 if api_key else 30.0
+                default_cooldown = 3.0 if api_key else 30.0
                 cooldown = float(retry_after) if retry_after and retry_after.isdigit() else default_cooldown
                 _s2_cooldown_until = time.monotonic() + cooldown
                 if attempt < max_retries:

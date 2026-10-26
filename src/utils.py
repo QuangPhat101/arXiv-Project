@@ -81,10 +81,10 @@ class RateLimiter:
 
 
 # Pre-configured instances for arXiv and Semantic Scholar
-# arXiv policy: max 1 request per 3 seconds
-# Semantic Scholar policy: 1 request per second without an API key
-arxiv_rate_limiter = RateLimiter(min_interval=3.0)
-s2_rate_limiter = RateLimiter(min_interval=1.5)
+# arXiv policy: max 1 request per 3 seconds (use 3.5s safe buffer)
+# Semantic Scholar policy: 1 request per second without an API key (use 2.5s safe buffer)
+arxiv_rate_limiter = RateLimiter(min_interval=3.5)
+s2_rate_limiter = RateLimiter(min_interval=3.0)
 
 
 def retry_with_backoff(
