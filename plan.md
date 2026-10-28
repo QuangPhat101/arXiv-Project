@@ -98,41 +98,47 @@ Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 └── README.md
 ```
 
-Nội dung báo cáo:
-- Tài liệu kỹ thuật: Mô tả chi tiết quy trình cào, thư viện sử dụng, luồng xử lý và cách giải quyết các trường hợp biên.
+﻿Nội dung báo cáo:
+- Ngôn ngữ: Sử dụng hoàn toàn bằng Tiếng Anh (ngôn ngữ chính thức của chương trình đào tạo).
+- Bảng biểu và đồ thị: Bắt buộc tự sinh bằng code khi compile Jupyter Book (`execute_notebooks: auto`), tuyệt đối không dùng ảnh chụp màn hình tĩnh.
+- Tài liệu kỹ thuật: Mô tả chi tiết quy trình cào, thư viện sử dụng (arXiv API, Semantic Scholar API, requests), luồng xử lý và cách giải quyết các trường hợp biên (PDF-only, Zip Slip, mã 429).
 - Thống kê dữ liệu: Tỷ lệ cào thành công, kích thước trung bình trước và sau khi lọc bỏ hình ảnh, số lượng trích dẫn trung bình, tỷ lệ bài có metadata trích dẫn.
-- Đo lường hiệu năng trên môi trường Google Colab CPU: Thời gian xử lý từng bài và toàn bộ dải ID, lượng RAM tiêu thụ đỉnh và trung bình qua `psutil`, dung lượng đĩa sử dụng. Toàn bộ bảng biểu và đồ thị phải được xuất tự động từ code, không dùng ảnh chụp màn hình.
+- Đo lường hiệu năng trên môi trường Google Colab CPU:
+  - Thời gian: Tách bạch rõ 3 chỉ số gồm tổng thời gian Entry Discovery, thời gian trung bình xử lý mỗi bài, và tổng thời gian chạy luồng đầu-cuối (wall time).
+  - Tài nguyên: Đo lường chuẩn xác qua `psutil` hoặc `/usr/bin/time -v` gồm RAM tiêu thụ đỉnh, RAM trung bình, dung lượng đĩa tối đa lúc xử lý (peak disk storage tính cả archive tải về) và dung lượng đĩa thực tế của dữ liệu đầu ra sau khi lọc bỏ hình ảnh.
 
 ## 6. Phân công chi tiết
 
 ### Phát
 1. Xây dựng khung mã nguồn toàn bộ repository `src/`: Thiết lập đầy đủ các hàm, kiểu dữ liệu trả về, docstring và hướng dẫn triển khai cho từng thành viên.
 2. Hoàn thiện `crawler.py`: Xây dựng CLI tiếp nhận dải ID, cơ chế lưu vết checkpoint hai lớp, xử lý ngắt quãng và ghi log tổng kết.
-3. Khởi tạo kho lưu trữ báo cáo Jupyter Book với cấu hình `myst.yml`.
-4. Thu thập dữ liệu dải cá nhân (tháng 05/2025: 10666 đến 15665).
-5. Viết nội dung `implementation.md` trong báo cáo.
-6. Đánh giá mã nguồn và duyệt Pull Request từ các thành viên.
+3. Hoàn thiện `README.md` của kho mã nguồn: Cung cấp hướng dẫn chi tiết cách thiết lập môi trường, phiên bản Python, cài đặt thư viện (`requirements.txt`), và cú pháp chạy crawler kèm tham số cấu hình.
+4. Khởi tạo kho lưu trữ báo cáo Jupyter Book với cấu hình `myst.yml`.
+5. Thu thập dữ liệu dải cá nhân (tháng 05/2025: 10666 đến 15665).
+6. Viết nội dung `implementation.md` trong báo cáo bằng Tiếng Anh.
+7. Đánh giá mã nguồn và duyệt Pull Request từ các thành viên.
 
 ### Khôi
 1. Hoàn thiện `utils.py`: Xây dựng bộ điều phối rate limit bằng `time.monotonic()`, decorator retry với exponential backoff và hàm thiết lập logger.
 2. Hoàn thiện `downloader.py`: Xây dựng hàm tải mã nguồn qua `export.arxiv.org`, hỗ trợ stream dữ liệu vào tệp tạm và tái sử dụng session.
 3. Thu thập dữ liệu dải cá nhân (tháng 06/2025: 5788 đến 10787).
-4. Thực hiện đo lường hiệu năng trên Google Colab CPU với mẫu 100 đến 200 bài.
-5. Viết nội dung `performance.ipynb` và phân tích các nút thắt cổ chai về thời gian mạng.
+4. Thực hiện đo lường hiệu năng trên Google Colab CPU với mẫu 100 đến 200 bài, thu thập đầy đủ chỉ số thời gian (discovery, mỗi bài, tổng wall time) và tài nguyên (RAM đỉnh, RAM trung bình, đĩa đỉnh, đĩa đầu ra).
+5. Viết nội dung `performance.ipynb` bằng Tiếng Anh, đảm bảo toàn bộ số liệu và biểu đồ được sinh tự động từ code và phân tích các nút thắt cổ chai về thời gian mạng.
 
 ### Bảo
 1. Hoàn thiện `discovery.py`: Tích hợp thư viện `arxiv`, hỗ trợ truy vấn gom lô qua `discover_papers_batch` để trích xuất metadata và danh sách phiên bản.
 2. Hoàn thiện `references.py`: Gọi Semantic Scholar Graph API, bóc tách các trường dữ liệu trích dẫn và xử lý trường hợp bài chưa được đánh chỉ mục (HTTP 404).
 3. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 21914 sang tháng 04/2025: 2522).
 4. Viết kịch bản tổng hợp dữ liệu từ 4 thành viên thành hai bảng `papers` và `references`. Kiểm tra tính toàn vẹn và làm sạch dữ liệu trùng lặp.
-5. Tính toán các chỉ số thống kê và viết nội dung `statistics.ipynb`.
+5. Tính toán các chỉ số thống kê và viết nội dung `statistics.ipynb` bằng Tiếng Anh với bảng biểu tự sinh từ code.
 
 ### Khánh
 1. Hoàn thiện `extractor.py`: Xây dựng hàm giải nén có chọn lọc, chỉ lưu tệp `.tex` và `.bib`, xử lý trường hợp bài PDF thuần và phòng chống tấn công Zip Slip.
 2. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 1914 đến 6913).
-3. Thiết lập GitHub Actions tự động build và xuất bản Jupyter Book lên GitHub Pages.
+3. Thiết lập GitHub Actions tự động execute notebook và xuất bản Jupyter Book lên GitHub Pages (`execute_notebooks: auto`).
 4. Viết mã nguồn vẽ biểu đồ phân tích trong các notebook báo cáo.
-5. Soạn thảo phần giải thích biểu đồ và ghi nhận các trường hợp biên khi thu thập dữ liệu.
+5. Soạn thảo phần giải thích biểu đồ và ghi nhận các trường hợp biên khi thu thập dữ liệu bằng Tiếng Anh.
+
 
 ## 7. Kế hoạch thời gian
 
