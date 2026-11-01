@@ -28,3 +28,4 @@ bulk/
 # Logs & Benchmark artifacts
 *.log
 benchmarks/output/
+*.rar
