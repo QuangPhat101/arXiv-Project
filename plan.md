@@ -129,15 +129,15 @@ Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 1. Hoàn thiện `discovery.py`: Tích hợp thư viện `arxiv`, hỗ trợ truy vấn gom lô qua `discover_papers_batch` để trích xuất metadata và danh sách phiên bản.
 2. Hoàn thiện `references.py`: Gọi Semantic Scholar Graph API, bóc tách các trường dữ liệu trích dẫn và xử lý trường hợp bài chưa được đánh chỉ mục (HTTP 404).
 3. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 21914 sang tháng 04/2025: 2522).
-4. Viết kịch bản tổng hợp dữ liệu từ 4 thành viên thành hai bảng `papers` và `references`. Kiểm tra tính toàn vẹn và làm sạch dữ liệu trùng lặp.
-5. Tính toán các chỉ số thống kê và viết nội dung `statistics.ipynb` bằng Tiếng Anh với bảng biểu tự sinh từ code.
+4. Viết kịch bản tổng hợp dữ liệu từ 4 thành viên thành hai bảng sạch `papers` và `references` (kiểm tra tính toàn vẹn và làm sạch dữ liệu trùng lặp).
+5. Tính toán các chỉ số thống kê cơ bản của tập dữ liệu (tỷ lệ thành công, kích thước trung bình trước và sau lọc ảnh, số lượng trích dẫn trung bình, tỷ lệ bài có trích dẫn) rồi bàn giao bảng dữ liệu và số liệu thống kê cho Khánh.
 
 ### Khánh
 1. Hoàn thiện `extractor.py`: Xây dựng hàm giải nén có chọn lọc, chỉ lưu tệp `.tex` và `.bib`, xử lý trường hợp bài PDF thuần và phòng chống tấn công Zip Slip.
 2. Thu thập dữ liệu dải cá nhân (tháng 03/2025: 1914 đến 6913).
-3. Thiết lập GitHub Actions tự động execute notebook và xuất bản Jupyter Book lên GitHub Pages (`execute_notebooks: auto`).
-4. Viết mã nguồn vẽ biểu đồ phân tích trong các notebook báo cáo.
-5. Soạn thảo phần giải thích biểu đồ và ghi nhận các trường hợp biên khi thu thập dữ liệu bằng Tiếng Anh.
+3. Tiếp nhận hai bảng dữ liệu và các chỉ số thống kê từ Bảo để trực tiếp viết toàn bộ mã nguồn vẽ biểu đồ phân tích trong `statistics.ipynb`.
+4. Soạn thảo toàn bộ nội dung phân tích biểu đồ, nhận xét số liệu và ghi nhận các trường hợp biên khi thu thập dữ liệu bằng Tiếng Anh trong `statistics.ipynb`.
+5. Thiết lập và kiểm tra GitHub Actions tự động execute notebook và xuất bản Jupyter Book lên GitHub Pages (`execute_notebooks: auto`).
 
 
 ## 7. Kế hoạch thời gian
@@ -154,9 +154,9 @@ Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 - Khánh: Kiểm tra quy trình build và deploy GitHub Pages.
 
 ### Tuần 3 (03/11 đến 05/11): Hợp nhất dữ liệu và hoàn thiện báo cáo
-- Bảo: Gộp dữ liệu thành hai bảng, tính toán số liệu và cập nhật `statistics.ipynb`.
-- Khôi: Chạy đo lường trên Google Colab và cập nhật `performance.ipynb`.
-- Khánh: Kiểm tra các biểu đồ tự sinh trong notebook báo cáo.
+- Bảo: Gộp dữ liệu từ 4 thành viên thành hai bảng sạch `papers` và `references`, tính toán các chỉ số thống kê cơ bản rồi bàn giao cho Khánh.
+- Khánh: Tiếp nhận dữ liệu và số liệu từ Bảo, trực tiếp viết mã nguồn vẽ biểu đồ, soạn thảo toàn bộ phần giải thích bằng Tiếng Anh trong `statistics.ipynb` và kiểm tra CI/CD GitHub Pages.
+- Khôi: Chạy đo lường thực nghiệm trên Google Colab CPU, hoàn thiện mã nguồn và nội dung phân tích trong `performance.ipynb`.
 - Phát: Hoàn thiện `implementation.md` và rà soát toàn bộ báo cáo.
 
 ### Hạn nộp (Tối 06/11)
