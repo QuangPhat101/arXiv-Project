@@ -46,6 +46,19 @@ except ImportError:
     from references import get_references  # type: ignore[no-redef]
     from utils import setup_logger, s2_rate_limiter  # type: ignore[no-redef]
 
+try:
+    from src.profiler import CrawlerProfiler
+except ImportError:
+    try:
+        from profiler import CrawlerProfiler  # type: ignore[no-redef]
+    except ImportError:
+        CrawlerProfiler = None  # type: ignore[assignment]
+
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[assignment]
+
 # Enforce safe 3.0s interval for Semantic Scholar
 s2_rate_limiter.min_interval = 3.0
 
@@ -197,6 +210,7 @@ def crawl_single_paper(
     session: Optional[Any] = None,
     s2_api_key: Optional[str] = None,
     metadata_cache: Optional[dict[str, Any]] = None,
+    profiler: Optional[Any] = None,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
@@ -239,7 +253,11 @@ def crawl_single_paper(
     refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
     if not refs_exist:
         try:
-            get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+            if profiler:
+                with profiler.time_phase("s2_references"):
+                    get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+            else:
+                get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
         except NotImplementedError:
             logger.warning("[%s] get_references not implemented yet by Member3. Halting paper processing.", arxiv_id)
             return False
@@ -262,11 +280,19 @@ def crawl_single_paper(
 
         # Download source
         try:
-            downloaded_file = download_source(
-                versioned_id=version_id,
-                dest_path=temp_archive_path,
-                session=session,
-            )
+            if profiler:
+                with profiler.time_phase("download"):
+                    downloaded_file = download_source(
+                        versioned_id=version_id,
+                        dest_path=temp_archive_path,
+                        session=session,
+                    )
+            else:
+                downloaded_file = download_source(
+                    versioned_id=version_id,
+                    dest_path=temp_archive_path,
+                    session=session,
+                )
         except NotImplementedError:
             logger.warning("[%s] download_source not implemented yet.", version_id)
             return False
@@ -278,10 +304,17 @@ def crawl_single_paper(
         try:
             archive_size_bytes = temp_archive_path.stat().st_size if temp_archive_path.exists() else 0
 
-            extract_result = extract_tex_bib(
-                archive_path=downloaded_file,
-                target_dir=version_dir,
-            )
+            if profiler:
+                with profiler.time_phase("extract"):
+                    extract_result = extract_tex_bib(
+                        archive_path=downloaded_file,
+                        target_dir=version_dir,
+                    )
+            else:
+                extract_result = extract_tex_bib(
+                    archive_path=downloaded_file,
+                    target_dir=version_dir,
+                )
             if extract_result == ExtractionResult.FAILED:
                 logger.error("[%s] Extraction failed for version %s", arxiv_id, version_id)
                 return False
@@ -318,11 +351,18 @@ def run_pipeline(
     checkpoint_file: Optional[Path] = None,
     batch_size: int = 100,
     s2_api_key: Optional[str] = None,
+    profile: bool = False,
+    profile_output: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Execute the pipeline over target arXiv IDs with batch discovery and version-level resume."""
     output_dir.mkdir(parents=True, exist_ok=True)
     if checkpoint_file is None:
         checkpoint_file = output_dir / "checkpoint.txt"
+
+    profiler = None
+    if profile and CrawlerProfiler is not None:
+        profiler = CrawlerProfiler(sample_interval=1.0)
+        profiler.start()
 
     completed_ids = load_checkpoint(checkpoint_file) if resume else set()
     failed_papers: dict[str, str] = {}
@@ -336,6 +376,8 @@ def run_pipeline(
 
     if not pending_ids:
         logger.info("All target papers are already completed.")
+        if profiler:
+            profiler.stop()
         return {
             "total_targets": len(arxiv_ids),
             "skipped": skipped_count,
@@ -363,7 +405,11 @@ def run_pipeline(
             try:
                 for i in range(0, len(missing_meta), batch_size):
                     chunk = missing_meta[i:i + batch_size]
-                    chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
+                    if profiler:
+                        with profiler.time_phase("discovery"):
+                            chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
+                    else:
+                        chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
                     if chunk_meta:
                         metadata_cache.update(chunk_meta)
             except NotImplementedError:
@@ -373,9 +419,9 @@ def run_pipeline(
 
         # Phase 2: Process Download & Extraction per paper
         logger.info("Phase 2: Downloading & Extracting paper sources...")
-        iterator = tqdm(pending_ids, desc="Crawling arXiv papers") if tqdm else pending_ids
 
-        for arxiv_id in iterator:
+        for idx, arxiv_id in enumerate(pending_ids, 1):
+            t_paper_start = time.perf_counter()
             try:
                 success = crawl_single_paper(
                     arxiv_id=arxiv_id,
@@ -384,7 +430,51 @@ def run_pipeline(
                     session=session,
                     s2_api_key=s2_api_key,
                     metadata_cache=metadata_cache,
+                    profiler=profiler,
                 )
+                paper_duration = time.perf_counter() - t_paper_start
+
+                # Parse paper sizes for profiler record
+                paper_dir = output_dir / arxiv_id
+                raw_bytes = 0
+                ext_bytes = 0
+                status_str = "SUCCESS" if success else "FAILED"
+                for v_dir in paper_dir.glob("v*"):
+                    st_file = v_dir / "status.txt"
+                    if st_file.is_file():
+                        txt = st_file.read_text(encoding="utf-8").strip()
+                        if "PDF_ONLY" in txt:
+                            status_str = "PDF_ONLY"
+                        for part in txt.split("|"):
+                            if part.startswith("raw_bytes:"):
+                                try:
+                                    raw_bytes += int(part.split(":")[1])
+                                except ValueError:
+                                    pass
+                            elif part.startswith("extracted_bytes:"):
+                                try:
+                                    ext_bytes += int(part.split(":")[1])
+                                except ValueError:
+                                    pass
+
+                if profiler:
+                    profiler.record_paper(arxiv_id, paper_duration, raw_bytes, ext_bytes, status_str)
+
+                # Live unbuffered status log - guarantees immediate visibility on Colab/terminal
+                current_ram = 0.0
+                if psutil:
+                    try:
+                        current_ram = psutil.Process().memory_info().rss / (1024 * 1024)
+                    except Exception:
+                        pass
+                print(
+                    f"[{idx}/{len(pending_ids)}] Paper {arxiv_id} | "
+                    f"Time: {paper_duration:.2f}s | "
+                    f"RAM: {current_ram:.1f} MB | "
+                    f"Status: {status_str}",
+                    flush=True,
+                )
+
                 if success:
                     mark_completed_atomic(checkpoint_file, arxiv_id)
                     completed_ids.add(arxiv_id)
@@ -395,13 +485,23 @@ def run_pipeline(
                 logger.exception("[%s] Unexpected exception: %s", arxiv_id, exc)
                 failed_papers[arxiv_id] = str(exc)
 
-            # Clean 3.0s cooldown between consecutive papers as requested
-            time.sleep(3.0)
+            # Clean 3.0s cooldown between consecutive papers
+            if profiler:
+                with profiler.time_phase("rate_limit_sleep"):
+                    time.sleep(3.0)
+            else:
+                time.sleep(3.0)
 
     finally:
         if session:
             session.close()
         shutil.rmtree(temp_dir, ignore_errors=True)
+        if profiler:
+            profiler.stop()
+            profiler.print_summary_table()
+            report_path = profile_output or (output_dir / "profile_stats.json")
+            profiler.export_json(report_path)
+            logger.info("Saved benchmark profile report to: %s", report_path)
 
     elapsed = time.perf_counter() - start_time
     summary = {
@@ -442,6 +542,7 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--s2-api-key", type=str, default=None, help="Optional Semantic Scholar API Key")
     parser.add_argument("--no-resume", action="store_true", help="Disable checkpoint resumption")
     parser.add_argument("--profile", action="store_true", help="Monitor RAM consumption periodically via psutil for Colab benchmark")
+    parser.add_argument("--profile-output", type=Path, default=None, help="Optional output JSON path for benchmark profile report")
     parser.add_argument("--log-file", type=Path, default=None, help="Optional log file path")
     return parser.parse_args(argv)
 
@@ -486,6 +587,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         resume=not args.no_resume,
         batch_size=args.batch_size,
         s2_api_key=args.s2_api_key,
+        profile=args.profile,
+        profile_output=args.profile_output,
     )
 
     return 0 if summary["failed"] == 0 else 1
