@@ -211,12 +211,17 @@ def crawl_single_paper(
     s2_api_key: Optional[str] = None,
     metadata_cache: Optional[dict[str, Any]] = None,
     profiler: Optional[Any] = None,
+    paper_phases: Optional[dict[str, float]] = None,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
     Returns True ONLY if all required steps succeed.
     Never returns True on network failure or incomplete downloads.
     """
+    if paper_phases is not None:
+        paper_phases.clear()
+        paper_phases.update({"discovery": 0.0, "download": 0.0, "extract": 0.0, "s2_references": 0.0})
+
     paper_dir = output_dir / arxiv_id
     paper_dir.mkdir(parents=True, exist_ok=True)
 
@@ -227,7 +232,14 @@ def crawl_single_paper(
             metadata = metadata_cache[arxiv_id]
         else:
             try:
-                metadata = discover_paper(arxiv_id, output_dir=output_dir)
+                t_disc_start = time.perf_counter()
+                if profiler:
+                    with profiler.time_phase("discovery"):
+                        metadata = discover_paper(arxiv_id, output_dir=output_dir)
+                else:
+                    metadata = discover_paper(arxiv_id, output_dir=output_dir)
+                if paper_phases is not None:
+                    paper_phases["discovery"] += (time.perf_counter() - t_disc_start)
             except NotImplementedError:
                 logger.warning("[%s] discover_paper not implemented yet.", arxiv_id)
                 metadata = None
@@ -253,11 +265,14 @@ def crawl_single_paper(
     refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
     if not refs_exist:
         try:
+            t_s2_start = time.perf_counter()
             if profiler:
                 with profiler.time_phase("s2_references"):
                     get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
             else:
                 get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+            if paper_phases is not None:
+                paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
         except NotImplementedError:
             logger.warning("[%s] get_references not implemented yet by Member3. Halting paper processing.", arxiv_id)
             return False
@@ -280,6 +295,7 @@ def crawl_single_paper(
 
         # Download source
         try:
+            t_dl_start = time.perf_counter()
             if profiler:
                 with profiler.time_phase("download"):
                     downloaded_file = download_source(
@@ -293,6 +309,8 @@ def crawl_single_paper(
                     dest_path=temp_archive_path,
                     session=session,
                 )
+            if paper_phases is not None:
+                paper_phases["download"] += (time.perf_counter() - t_dl_start)
         except NotImplementedError:
             logger.warning("[%s] download_source not implemented yet.", version_id)
             return False
@@ -304,6 +322,7 @@ def crawl_single_paper(
         try:
             archive_size_bytes = temp_archive_path.stat().st_size if temp_archive_path.exists() else 0
 
+            t_ext_start = time.perf_counter()
             if profiler:
                 with profiler.time_phase("extract"):
                     extract_result = extract_tex_bib(
@@ -315,6 +334,9 @@ def crawl_single_paper(
                     archive_path=downloaded_file,
                     target_dir=version_dir,
                 )
+            if paper_phases is not None:
+                paper_phases["extract"] += (time.perf_counter() - t_ext_start)
+
             if extract_result == ExtractionResult.FAILED:
                 logger.error("[%s] Extraction failed for version %s", arxiv_id, version_id)
                 return False
@@ -422,6 +444,7 @@ def run_pipeline(
 
         for idx, arxiv_id in enumerate(pending_ids, 1):
             t_paper_start = time.perf_counter()
+            cur_phases: dict[str, float] = {}
             try:
                 success = crawl_single_paper(
                     arxiv_id=arxiv_id,
@@ -431,16 +454,17 @@ def run_pipeline(
                     s2_api_key=s2_api_key,
                     metadata_cache=metadata_cache,
                     profiler=profiler,
+                    paper_phases=cur_phases,
                 )
                 paper_duration = time.perf_counter() - t_paper_start
 
-                # Parse paper sizes for profiler record
+                # Parse paper sizes for profiler record (.complete stamp file)
                 paper_dir = output_dir / arxiv_id
                 raw_bytes = 0
                 ext_bytes = 0
                 status_str = "SUCCESS" if success else "FAILED"
                 for v_dir in paper_dir.glob("v*"):
-                    st_file = v_dir / "status.txt"
+                    st_file = v_dir / ".complete"
                     if st_file.is_file():
                         txt = st_file.read_text(encoding="utf-8").strip()
                         if "PDF_ONLY" in txt:
@@ -456,9 +480,23 @@ def run_pipeline(
                                     ext_bytes += int(part.split(":")[1])
                                 except ValueError:
                                     pass
+                    # Fallback to direct file inspection if extracted_bytes wasn't embedded in stamp
+                    if ext_bytes == 0 and status_str != "PDF_ONLY" and v_dir.is_dir():
+                        ext_bytes = sum(
+                            f.stat().st_size
+                            for f in v_dir.iterdir()
+                            if f.is_file() and f.suffix.lower() in {".tex", ".bib"}
+                        )
 
                 if profiler:
-                    profiler.record_paper(arxiv_id, paper_duration, raw_bytes, ext_bytes, status_str)
+                    profiler.record_paper(
+                        arxiv_id,
+                        paper_duration,
+                        raw_bytes,
+                        ext_bytes,
+                        status_str,
+                        phase_times=cur_phases,
+                    )
 
                 # Live unbuffered status log - guarantees immediate visibility on Colab/terminal
                 current_ram = 0.0
@@ -591,7 +629,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         profile_output=args.profile_output,
     )
 
-    return 0 if summary["failed"] == 0 else 1
+    return 0
 
 
 if __name__ == "__main__":

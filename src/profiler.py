@@ -115,8 +115,9 @@ class CrawlerProfiler:
         raw_bytes: int,
         extracted_bytes: int,
         status: str,
+        phase_times: Optional[Dict[str, float]] = None,
     ) -> None:
-        """Record telemetry for a single completed paper."""
+        """Record telemetry for a single completed paper, including per-phase breakdown."""
         current_ram_mb = 0.0
         if psutil is not None:
             try:
@@ -124,14 +125,18 @@ class CrawlerProfiler:
             except Exception:
                 pass
 
-        self.paper_records.append({
+        record: Dict[str, Any] = {
             "arxiv_id": arxiv_id,
             "duration_s": round(duration, 2),
             "raw_bytes": raw_bytes,
             "extracted_bytes": extracted_bytes,
             "status": status,
             "ram_mb": current_ram_mb,
-        })
+        }
+        if phase_times:
+            record["phases_s"] = {k: round(v, 2) for k, v in phase_times.items()}
+
+        self.paper_records.append(record)
 
     def get_summary(self) -> Dict[str, Any]:
         """Aggregate all collected telemetry into a structured dictionary."""
