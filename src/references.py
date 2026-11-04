@@ -28,6 +28,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
+import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -49,6 +51,7 @@ S2_FIELDS = "references.title,references.authors,references.year,references.publ
 
 
 _s2_cooldown_until: float = 0.0
+_s2_lock = threading.Lock()
 
 
 def fetch_s2_paper_data(
@@ -63,7 +66,7 @@ def fetch_s2_paper_data(
         GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{arxiv_id}?fields={S2_FIELDS}
 
     Enforces 1 req/sec rate limit via `s2_rate_limiter.wait()` and handles
-    HTTP 429 with exponential backoff.
+    HTTP 429 with exponential backoff and jitter.
 
     Args:
         arxiv_id: Base arXiv ID without version suffix (e.g., '2505.10666').
@@ -82,9 +85,12 @@ def fetch_s2_paper_data(
     if requests is None:
         raise RuntimeError("The 'requests' library is not installed.")
 
+    with _s2_lock:
+        cooldown_target = _s2_cooldown_until
+
     now = time.monotonic()
-    if now < _s2_cooldown_until:
-        wait_s = _s2_cooldown_until - now
+    if now < cooldown_target:
+        wait_s = cooldown_target - now
         logger.warning("[%s] Waiting for S2 cooldown (%.1fs remaining)...", arxiv_id, wait_s)
         time.sleep(wait_s)
 
@@ -95,7 +101,7 @@ def fetch_s2_paper_data(
     url = f"{S2_GRAPH_API_URL}/arXiv:{arxiv_id}"
     params = {"fields": S2_FIELDS}
 
-    max_retries = 5
+    max_retries = 10
     delay = 2.0
 
     for attempt in range(1, max_retries + 1):
@@ -111,9 +117,13 @@ def fetch_s2_paper_data(
                 return None
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                default_cooldown = 3.0 if api_key else 30.0
-                cooldown = float(retry_after) if retry_after and retry_after.isdigit() else default_cooldown
-                _s2_cooldown_until = time.monotonic() + cooldown
+                base_cooldown = float(retry_after) if retry_after and retry_after.isdigit() else (2.0 if api_key else 8.0)
+                # Exponential backoff with ±0.5s jitter, capped at 30s
+                cooldown = min(30.0, base_cooldown * (1.3 ** (attempt - 1)) + random.uniform(-0.5, 0.5))
+                cooldown = max(1.0, cooldown)
+                with _s2_lock:
+                    _s2_cooldown_until = max(_s2_cooldown_until, time.monotonic() + cooldown)
+
                 if attempt < max_retries:
                     logger.warning("[%s] S2 429 Rate Limit. Sleeping %.1fs before retry %d/%d.", arxiv_id, cooldown, attempt + 1, max_retries)
                     time.sleep(cooldown)
