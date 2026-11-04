@@ -116,6 +116,7 @@ class CrawlerProfiler:
         extracted_bytes: int,
         status: str,
         phase_times: Optional[Dict[str, float]] = None,
+        error: Optional[str] = None,
     ) -> None:
         """Record telemetry for a single completed paper, including per-phase breakdown."""
         current_ram_mb = 0.0
@@ -135,6 +136,8 @@ class CrawlerProfiler:
         }
         if phase_times:
             record["phases_s"] = {k: round(v, 2) for k, v in phase_times.items()}
+        if error:
+            record["error"] = error
 
         self.paper_records.append(record)
 
@@ -157,6 +160,23 @@ class CrawlerProfiler:
         # Sample timeline if large to keep JSON lightweight
         step = max(1, len(self.timestamps) // 200)
 
+        # Aggregate failure reasons
+        failed_records = [r for r in self.paper_records if "FAILED" in r.get("status", "") or r.get("error")]
+        failure_reasons: Dict[str, int] = {}
+        for r in failed_records:
+            err = r.get("error", "Unspecified error")
+            if "429" in err or "Rate Limit" in err:
+                cat = "Semantic Scholar (429 Rate Limit)"
+            elif "download" in err.lower() or "404" in err:
+                cat = "Download Source (Network / HTTP)"
+            elif "extract" in err.lower():
+                cat = "Extraction (Corrupted / Unsupported)"
+            elif "discovery" in err.lower():
+                cat = "Discovery API"
+            else:
+                cat = f"Other ({err[:30]}...)" if len(err) > 30 else f"Other ({err})"
+            failure_reasons[cat] = failure_reasons.get(cat, 0) + 1
+
         return {
             "testbed": {
                 "platform": platform.platform(),
@@ -172,7 +192,8 @@ class CrawlerProfiler:
                 "avg_time_per_paper_s": avg_time,
                 "success_count": sum(1 for r in self.paper_records if "SUCCESS" in r["status"]),
                 "pdf_only_count": sum(1 for r in self.paper_records if "PDF_ONLY" in r["status"]),
-                "failed_count": sum(1 for r in self.paper_records if "FAILED" in r["status"]),
+                "failed_count": len(failed_records),
+                "failure_reasons": failure_reasons,
             },
             "memory": {
                 "peak_ram_mb": peak_ram,
@@ -190,6 +211,14 @@ class CrawlerProfiler:
                 "storage_savings_pct": savings_pct,
             },
             "phase_breakdown_s": {k: round(v, 2) for k, v in self.phase_times.items()},
+            "failed_papers": [
+                {
+                    "arxiv_id": r["arxiv_id"],
+                    "error": r.get("error", "Unknown error"),
+                    "duration_s": r.get("duration_s", 0.0),
+                }
+                for r in failed_records
+            ],
             "paper_records": self.paper_records,
         }
 
@@ -205,6 +234,8 @@ class CrawlerProfiler:
         print("          BENCHMARK PROFILER SUMMARY REPORT          ")
         print("=" * 65)
         print(f" Evaluated Papers:        {run['evaluated_papers']}")
+        print(f" Succeeded:               {run['success_count']} / {run['evaluated_papers']}")
+        print(f" Failed:                  {run['failed_count']} / {run['evaluated_papers']}")
         print(f" Total Wall-clock Time:   {run['wall_time_s']} s ({run['wall_time_min']} mins)")
         print(f" Average Time per Paper:  {run['avg_time_per_paper_s']} s")
         print(f" Peak Memory (RSS):       {mem['peak_ram_mb']:.1f} MB")
@@ -218,6 +249,18 @@ class CrawlerProfiler:
         for phase, dur in phases.items():
             pct = (dur / total_phase) * 100
             print(f"   - {phase:<18}: {dur:>6.1f} s  ({pct:>5.1f}%)")
+
+        if run["failed_count"] > 0:
+            print("-" * 65)
+            print(" Failure Breakdown by Reason:")
+            for reason, cnt in run.get("failure_reasons", {}).items():
+                print(f"   - {reason:<35}: {cnt:>2} papers")
+            failed_list = summary.get("failed_papers", [])
+            if failed_list:
+                print(" Failed Paper Details:")
+                for item in failed_list:
+                    print(f"   * [{item['arxiv_id']}]: {item['error']}")
+
         print("=" * 65 + "\n", flush=True)
 
     def export_json(self, output_path: Path | str) -> Path:

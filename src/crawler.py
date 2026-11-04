@@ -212,12 +212,16 @@ def crawl_single_paper(
     metadata_cache: Optional[dict[str, Any]] = None,
     profiler: Optional[Any] = None,
     paper_phases: Optional[dict[str, float]] = None,
+    error_holder: Optional[list[str]] = None,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
     Returns True ONLY if all required steps succeed.
     Never returns True on network failure or incomplete downloads.
     """
+    if error_holder is not None:
+        error_holder.clear()
+
     if paper_phases is not None:
         paper_phases.clear()
         paper_phases.update({"discovery": 0.0, "download": 0.0, "extract": 0.0, "s2_references": 0.0})
@@ -275,9 +279,13 @@ def crawl_single_paper(
                 paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
         except NotImplementedError:
             logger.warning("[%s] get_references not implemented yet by Member3. Halting paper processing.", arxiv_id)
+            if error_holder is not None:
+                error_holder.append("Semantic Scholar: get_references not implemented")
             return False
         except Exception as exc:
             logger.error("[%s] Error fetching references from Semantic Scholar: %s", arxiv_id, exc)
+            if error_holder is not None:
+                error_holder.append(f"Semantic Scholar references: {exc}")
             return False
 
     # 3. Process each version
@@ -313,9 +321,13 @@ def crawl_single_paper(
                 paper_phases["download"] += (time.perf_counter() - t_dl_start)
         except NotImplementedError:
             logger.warning("[%s] download_source not implemented yet.", version_id)
+            if error_holder is not None:
+                error_holder.append(f"Download: download_source not implemented for {version_id}")
             return False
         except Exception as exc:
             logger.error("[%s] Failed to download %s: %s", arxiv_id, version_id, exc)
+            if error_holder is not None:
+                error_holder.append(f"Download {version_id}: {exc}")
             return False
 
         # Extract source (.tex / .bib) or handle PDF-only
@@ -339,6 +351,8 @@ def crawl_single_paper(
 
             if extract_result == ExtractionResult.FAILED:
                 logger.error("[%s] Extraction failed for version %s", arxiv_id, version_id)
+                if error_holder is not None:
+                    error_holder.append(f"Extraction failed for {version_id} (corrupted or unsupported format)")
                 return False
 
             # Calculate extracted size (.tex and .bib only) for benchmark reporting
@@ -352,9 +366,13 @@ def crawl_single_paper(
             mark_version_completed(version_dir, status=status_payload)
         except NotImplementedError:
             logger.warning("[%s] extract_tex_bib not implemented yet.", version_id)
+            if error_holder is not None:
+                error_holder.append(f"Extraction: extract_tex_bib not implemented for {version_id}")
             return False
         except Exception as exc:
             logger.error("[%s] Extraction exception for %s: %s", arxiv_id, version_id, exc)
+            if error_holder is not None:
+                error_holder.append(f"Extraction exception for {version_id}: {exc}")
             return False
         finally:
             if temp_archive_path.exists():
@@ -445,6 +463,7 @@ def run_pipeline(
         for idx, arxiv_id in enumerate(pending_ids, 1):
             t_paper_start = time.perf_counter()
             cur_phases: dict[str, float] = {}
+            cur_errors: list[str] = []
             try:
                 success = crawl_single_paper(
                     arxiv_id=arxiv_id,
@@ -455,8 +474,11 @@ def run_pipeline(
                     metadata_cache=metadata_cache,
                     profiler=profiler,
                     paper_phases=cur_phases,
+                    error_holder=cur_errors,
                 )
                 paper_duration = time.perf_counter() - t_paper_start
+
+                fail_reason = cur_errors[0] if (not success and cur_errors) else None
 
                 # Parse paper sizes for profiler record (.complete stamp file)
                 paper_dir = output_dir / arxiv_id
@@ -496,6 +518,7 @@ def run_pipeline(
                         ext_bytes,
                         status_str,
                         phase_times=cur_phases,
+                        error=fail_reason,
                     )
 
                 # Live unbuffered status log - guarantees immediate visibility on Colab/terminal
@@ -505,11 +528,12 @@ def run_pipeline(
                         current_ram = psutil.Process().memory_info().rss / (1024 * 1024)
                     except Exception:
                         pass
+                err_suffix = f" -> Reason: {fail_reason}" if fail_reason else ""
                 print(
                     f"[{idx}/{len(pending_ids)}] Paper {arxiv_id} | "
                     f"Time: {paper_duration:.2f}s | "
                     f"RAM: {current_ram:.1f} MB | "
-                    f"Status: {status_str}",
+                    f"Status: {status_str}{err_suffix}",
                     flush=True,
                 )
 
@@ -518,10 +542,21 @@ def run_pipeline(
                     completed_ids.add(arxiv_id)
                     success_count += 1
                 else:
-                    failed_papers[arxiv_id] = "Step failure (download/extraction/metadata)"
+                    failed_papers[arxiv_id] = fail_reason or "Step failure (download/extraction/metadata)"
             except Exception as exc:
                 logger.exception("[%s] Unexpected exception: %s", arxiv_id, exc)
-                failed_papers[arxiv_id] = str(exc)
+                fail_reason = f"Unexpected exception: {exc}"
+                failed_papers[arxiv_id] = fail_reason
+                if profiler:
+                    profiler.record_paper(
+                        arxiv_id,
+                        time.perf_counter() - t_paper_start,
+                        0,
+                        0,
+                        "FAILED",
+                        phase_times=cur_phases,
+                        error=fail_reason,
+                    )
 
             # Clean 3.0s cooldown between consecutive papers
             if profiler:
