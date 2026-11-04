@@ -59,6 +59,8 @@ def fetch_s2_paper_data(
     timeout: float = 30.0,
     api_key: Optional[str] = None,
     session: Optional[Any] = None,
+    max_retries: int = 5,
+    use_jitter: bool = False,
 ) -> Optional[dict[str, Any]]:
     """Fetch raw paper reference payload from Semantic Scholar Graph API.
 
@@ -66,13 +68,16 @@ def fetch_s2_paper_data(
         GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{arxiv_id}?fields={S2_FIELDS}
 
     Enforces 1 req/sec rate limit via `s2_rate_limiter.wait()` and handles
-    HTTP 429 with exponential backoff and jitter.
+    HTTP 429 with configurable retries and backoff.
 
     Args:
         arxiv_id: Base arXiv ID without version suffix (e.g., '2505.10666').
         timeout: Network timeout in seconds.
         api_key: Optional Semantic Scholar API key.
         session: Optional reusable `requests.Session`.
+        max_retries: Maximum number of retry attempts on 429 / 5xx (default: 5 for baseline, 10 for parallel).
+        use_jitter: If True, uses exponential backoff with random jitter (parallel mode).
+                    If False, uses original baseline linear cooldown without jitter.
 
     Returns:
         Optional[dict[str, Any]]: JSON response dictionary, or None if paper
@@ -101,7 +106,6 @@ def fetch_s2_paper_data(
     url = f"{S2_GRAPH_API_URL}/arXiv:{arxiv_id}"
     params = {"fields": S2_FIELDS}
 
-    max_retries = 10
     delay = 2.0
 
     for attempt in range(1, max_retries + 1):
@@ -117,10 +121,14 @@ def fetch_s2_paper_data(
                 return None
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                base_cooldown = float(retry_after) if retry_after and retry_after.isdigit() else (2.0 if api_key else 8.0)
-                # Exponential backoff with ±0.5s jitter, capped at 30s
-                cooldown = min(30.0, base_cooldown * (1.3 ** (attempt - 1)) + random.uniform(-0.5, 0.5))
-                cooldown = max(1.0, cooldown)
+                if use_jitter:
+                    base_cooldown = float(retry_after) if retry_after and retry_after.isdigit() else (2.0 if api_key else 8.0)
+                    cooldown = min(30.0, base_cooldown * (1.3 ** (attempt - 1)) + random.uniform(-0.5, 0.5))
+                    cooldown = max(1.0, cooldown)
+                else:
+                    default_cooldown = 3.0 if api_key else 30.0
+                    cooldown = float(retry_after) if retry_after and retry_after.isdigit() else default_cooldown
+
                 with _s2_lock:
                     _s2_cooldown_until = max(_s2_cooldown_until, time.monotonic() + cooldown)
 
@@ -243,6 +251,8 @@ def get_references(
     output_dir: Optional[Path | str] = None,
     api_key: Optional[str] = None,
     session: Optional[Any] = None,
+    max_retries: int = 5,
+    use_jitter: bool = False,
 ) -> list[dict[str, Any]]:
     """Retrieve and optionally save references for a paper.
 
@@ -254,6 +264,8 @@ def get_references(
         output_dir: Optional path to project data directory.
         api_key: Optional Semantic Scholar API key.
         session: Optional reusable `requests.Session`.
+        max_retries: Maximum number of retry attempts (default: 5).
+        use_jitter: If True, uses exponential backoff with jitter.
 
     Returns:
         list[dict[str, Any]]: List of parsed references.
@@ -262,7 +274,13 @@ def get_references(
     if "v" in clean_id:
         clean_id = clean_id.split("v")[0]
 
-    raw_data = fetch_s2_paper_data(clean_id, api_key=api_key, session=session)
+    raw_data = fetch_s2_paper_data(
+        clean_id,
+        api_key=api_key,
+        session=session,
+        max_retries=max_retries,
+        use_jitter=use_jitter,
+    )
     refs = parse_references(raw_data)
 
     if output_dir:

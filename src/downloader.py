@@ -62,8 +62,9 @@ def get_source_url(versioned_id: str) -> str:
 def download_source(
     versioned_id: str,
     dest_path: Path | str,
-    timeout: float = 60.0,
+    timeout: float = 30.0,
     session: Optional[Any] = None,
+    allow_resume: bool = False,
 ) -> Optional[Path]:
     """Download the source archive for a given versioned arXiv ID.
 
@@ -71,7 +72,7 @@ def download_source(
         1. Ensure dest_path parent directory exists.
         2. Enforce arXiv rate limit (3s minimum gap) using `arxiv_rate_limiter.wait()`.
         3. Make GET request to `https://export.arxiv.org/src/{versioned_id}` using session or requests.
-           Supports HTTP Range resumption if a previous attempt was interrupted (IncompleteRead).
+           Supports HTTP Range resumption if allow_resume is True and a previous attempt was interrupted.
         4. Check status code:
            - 200: Stream content to dest_path (chunk size 64KB), return Path(dest_path).
            - 206: Append resumed content to partial destination via HTTP Range header.
@@ -81,8 +82,10 @@ def download_source(
     Args:
         versioned_id: Versioned arXiv identifier (e.g., '2505.10666v1').
         dest_path: Destination file path where archive will be saved.
-        timeout: Network request timeout in seconds (default: 60.0s).
+        timeout: Network request timeout in seconds (default: 30.0s for baseline, 60.0s for parallel).
         session: Optional reusable `requests.Session`.
+        allow_resume: If True, uses HTTP Range resumption on partial drop (parallel mode).
+                      If False, drops partial file and restarts (original baseline mode).
 
     Returns:
         Optional[Path]: Path to downloaded archive if 200/206, None if 404 (not available).
@@ -109,7 +112,7 @@ def download_source(
         arxiv_rate_limiter.wait()
 
         req_headers = dict(headers)
-        existing_bytes = tmp_dest.stat().st_size if tmp_dest.is_file() else 0
+        existing_bytes = tmp_dest.stat().st_size if (allow_resume and tmp_dest.is_file()) else 0
         if existing_bytes > 0:
             req_headers["Range"] = f"bytes={existing_bytes}-"
 
@@ -131,9 +134,13 @@ def download_source(
                         f.write(chunk)
             tmp_dest.replace(dest)
         except Exception as stream_err:
-            # Keep partial tmp_dest so next retry can resume via HTTP Range
-            logger.warning("[%s] Stream interrupted (%s). Preserving %d bytes for resume.",
-                           versioned_id, stream_err, tmp_dest.stat().st_size if tmp_dest.is_file() else 0)
+            if not allow_resume:
+                if tmp_dest.exists():
+                    tmp_dest.unlink(missing_ok=True)
+            else:
+                # Keep partial tmp_dest so next retry can resume via HTTP Range
+                logger.warning("[%s] Stream interrupted (%s). Preserving %d bytes for resume.",
+                               versioned_id, stream_err, tmp_dest.stat().st_size if tmp_dest.is_file() else 0)
             raise stream_err
         finally:
             resp.close()

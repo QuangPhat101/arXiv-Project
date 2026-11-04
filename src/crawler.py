@@ -215,6 +215,11 @@ def crawl_single_paper(
     profiler: Optional[Any] = None,
     paper_phases: Optional[dict[str, float]] = None,
     error_holder: Optional[list[str]] = None,
+    force_recrawl: bool = False,
+    s2_max_retries: int = 5,
+    s2_use_jitter: bool = False,
+    download_timeout: float = 30.0,
+    download_allow_resume: bool = False,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
@@ -232,7 +237,7 @@ def crawl_single_paper(
     paper_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Discovery
-    metadata = _read_json(paper_dir / "metadata.json")
+    metadata = None if force_recrawl else _read_json(paper_dir / "metadata.json")
     if not isinstance(metadata, dict) or not metadata.get("versions"):
         if metadata_cache and arxiv_id in metadata_cache:
             metadata = metadata_cache[arxiv_id]
@@ -266,17 +271,30 @@ def crawl_single_paper(
 
     versions: list[str] = metadata["versions"]
 
-    # 2. Parallel / Async trigger for Semantic Scholar references
-    # Fetch references while downloading sources to optimize overall wall-clock time
-    refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
+    # 2. Semantic Scholar references
+    refs_exist = False if force_recrawl else isinstance(_read_json(paper_dir / "references.json"), list)
     if not refs_exist:
         try:
             t_s2_start = time.perf_counter()
             if profiler:
                 with profiler.time_phase("s2_references"):
-                    get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                    get_references(
+                        arxiv_id,
+                        output_dir=output_dir,
+                        api_key=s2_api_key,
+                        session=session,
+                        max_retries=s2_max_retries,
+                        use_jitter=s2_use_jitter,
+                    )
             else:
-                get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                get_references(
+                    arxiv_id,
+                    output_dir=output_dir,
+                    api_key=s2_api_key,
+                    session=session,
+                    max_retries=s2_max_retries,
+                    use_jitter=s2_use_jitter,
+                )
             if paper_phases is not None:
                 paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
         except NotImplementedError:
@@ -297,7 +315,7 @@ def crawl_single_paper(
             v_suffix = f"v{version_id.split('v')[-1]}"
 
         version_dir = paper_dir / v_suffix
-        if is_version_completed(version_dir):
+        if not force_recrawl and is_version_completed(version_dir):
             logger.debug("[%s] Version %s already completed, skipping.", arxiv_id, v_suffix)
             continue
 
@@ -312,12 +330,16 @@ def crawl_single_paper(
                         versioned_id=version_id,
                         dest_path=temp_archive_path,
                         session=session,
+                        timeout=download_timeout,
+                        allow_resume=download_allow_resume,
                     )
             else:
                 downloaded_file = download_source(
                     versioned_id=version_id,
                     dest_path=temp_archive_path,
                     session=session,
+                    timeout=download_timeout,
+                    allow_resume=download_allow_resume,
                 )
             if paper_phases is not None:
                 paper_phases["download"] += (time.perf_counter() - t_dl_start)
@@ -395,6 +417,7 @@ def run_sequential_pipeline(
     s2_api_key: Optional[str] = None,
     profile: bool = False,
     profile_output: Optional[Path] = None,
+    baseline: bool = False,
 ) -> dict[str, Any]:
     """Execute the baseline sequential pipeline over target arXiv IDs."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -406,13 +429,18 @@ def run_sequential_pipeline(
         profiler = CrawlerProfiler(sample_interval=1.0, n_workers=1)
         profiler.start()
 
-    completed_ids = load_checkpoint(checkpoint_file) if resume else set()
     failed_papers: dict[str, str] = {}
     success_count = 0
     skipped_count = 0
 
-    pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
-    skipped_count = len(arxiv_ids) - len(pending_ids)
+    if resume:
+        completed_ids = load_checkpoint(checkpoint_file)
+        pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
+        skipped_count = len(arxiv_ids) - len(pending_ids)
+    else:
+        completed_ids = set()
+        pending_ids = list(arxiv_ids)
+        skipped_count = 0
 
     logger.info("Total targets: %d | Completed previously: %d | Pending: %d", len(arxiv_ids), skipped_count, len(pending_ids))
 
@@ -435,11 +463,15 @@ def run_sequential_pipeline(
 
     try:
         # Phase 1: High-Performance Batch Discovery
-        missing_meta = [
-            aid for aid in pending_ids
-            if not (output_dir / aid / "metadata.json").is_file()
-            or not _read_json(output_dir / aid / "metadata.json")
-        ]
+        if resume:
+            missing_meta = [
+                aid for aid in pending_ids
+                if not (output_dir / aid / "metadata.json").is_file()
+                or not _read_json(output_dir / aid / "metadata.json")
+            ]
+        else:
+            missing_meta = list(pending_ids)
+
         metadata_cache: dict[str, Any] = {}
         if missing_meta:
             logger.info("Phase 1: Running Batch Discovery for %d papers lacking metadata...", len(missing_meta))
@@ -476,6 +508,11 @@ def run_sequential_pipeline(
                     profiler=profiler,
                     paper_phases=cur_phases,
                     error_holder=cur_errors,
+                    force_recrawl=not resume,
+                    s2_max_retries=5 if baseline else 10,
+                    s2_use_jitter=False if baseline else True,
+                    download_timeout=30.0 if baseline else 60.0,
+                    download_allow_resume=False if baseline else True,
                 )
                 paper_duration = time.perf_counter() - t_paper_start
                 fail_reason = cur_errors[0] if (not success and cur_errors) else None
@@ -664,13 +701,18 @@ def run_parallel_pipeline(
         profiler = CrawlerProfiler(sample_interval=1.0, n_workers=dl_workers_cnt)
         profiler.start()
 
-    completed_ids = load_checkpoint(checkpoint_file) if resume else set()
     failed_papers: dict[str, str] = {}
     success_count = [0]
     processed_count = [0]
 
-    pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
-    skipped_count = len(arxiv_ids) - len(pending_ids)
+    if resume:
+        completed_ids = load_checkpoint(checkpoint_file)
+        pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
+        skipped_count = len(arxiv_ids) - len(pending_ids)
+    else:
+        completed_ids = set()
+        pending_ids = list(arxiv_ids)
+        skipped_count = 0
 
     logger.info(
         "Parallel Pipeline: Targets=%d | Skipped=%d | Pending=%d | Download Workers=%d | S2 Workers=%d",
@@ -707,11 +749,14 @@ def run_parallel_pipeline(
     # ── Stage 1: Discovery Producer ───────────────────────────────────────────
     def discovery_producer():
         try:
-            missing_meta = [
-                aid for aid in pending_ids
-                if not (output_dir / aid / "metadata.json").is_file()
-                or not _read_json(output_dir / aid / "metadata.json")
-            ]
+            if resume:
+                missing_meta = [
+                    aid for aid in pending_ids
+                    if not (output_dir / aid / "metadata.json").is_file()
+                    or not _read_json(output_dir / aid / "metadata.json")
+                ]
+            else:
+                missing_meta = list(pending_ids)
             metadata_cache: dict[str, Any] = {}
             if missing_meta:
                 logger.info("Stage 1 Discovery: Batch querying metadata for %d papers...", len(missing_meta))
@@ -785,7 +830,7 @@ def run_parallel_pipeline(
                 for version_id in versions:
                     v_suffix = f"v{version_id.split('v')[-1]}" if "v" in version_id else "v1"
                     version_dir = paper_dir / v_suffix
-                    if is_version_completed(version_dir):
+                    if resume and is_version_completed(version_dir):
                         continue
 
                     temp_archive_path = temp_dir / f"{version_id}.archive"
@@ -797,12 +842,16 @@ def run_parallel_pipeline(
                                     versioned_id=version_id,
                                     dest_path=temp_archive_path,
                                     session=session,
+                                    timeout=60.0,
+                                    allow_resume=True,
                                 )
                         else:
                             dl_path = download_source(
                                 versioned_id=version_id,
                                 dest_path=temp_archive_path,
                                 session=session,
+                                timeout=60.0,
+                                allow_resume=True,
                             )
                         paper_phases["download"] += (time.perf_counter() - t_dl_start)
                         archives[version_id] = dl_path
@@ -850,7 +899,7 @@ def run_parallel_pipeline(
                     for version_id in versions:
                         v_suffix = f"v{version_id.split('v')[-1]}" if "v" in version_id else "v1"
                         version_dir = paper_dir / v_suffix
-                        if is_version_completed(version_dir):
+                        if resume and is_version_completed(version_dir):
                             continue
 
                         archive_file = job.archives.get(version_id)
@@ -900,15 +949,29 @@ def run_parallel_pipeline(
 
                 # 2. S2 References (only if extraction didn't fail)
                 if success:
-                    refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
+                    refs_exist = False if not resume else isinstance(_read_json(paper_dir / "references.json"), list)
                     if not refs_exist:
                         try:
                             t_s2_start = time.perf_counter()
                             if profiler:
                                 with profiler.time_phase("s2_references"):
-                                    get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                                    get_references(
+                                        arxiv_id,
+                                        output_dir=output_dir,
+                                        api_key=s2_api_key,
+                                        session=session,
+                                        max_retries=10,
+                                        use_jitter=True,
+                                    )
                             else:
-                                get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                                get_references(
+                                    arxiv_id,
+                                    output_dir=output_dir,
+                                    api_key=s2_api_key,
+                                    session=session,
+                                    max_retries=10,
+                                    use_jitter=True,
+                                )
                             paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
                         except Exception as exc:
                             success = False
@@ -1061,9 +1124,10 @@ def run_pipeline(
     n_workers: int = 1,
     download_workers: Optional[int] = None,
     s2_workers: Optional[int] = None,
+    baseline: bool = False,
 ) -> dict[str, Any]:
     """Execute the pipeline over target arXiv IDs, routing to sequential or parallel engine."""
-    effective_workers = download_workers or n_workers
+    effective_workers = 1 if baseline else (download_workers or n_workers)
     if effective_workers > 1:
         return run_parallel_pipeline(
             arxiv_ids=arxiv_ids,
@@ -1088,6 +1152,7 @@ def run_pipeline(
             s2_api_key=s2_api_key,
             profile=profile,
             profile_output=profile_output,
+            baseline=baseline,
         )
 
 
@@ -1114,6 +1179,7 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--download-workers", type=int, default=None, help="Explicit number of download workers (overrides --n-workers)")
     parser.add_argument("--s2-workers", type=int, default=None, help="Explicit number of S2 reference workers (default: min(n_workers, 4))")
     parser.add_argument("--parallel", action="store_true", help="Enable parallel mode (equivalent to --n-workers 3 if not set)")
+    parser.add_argument("--baseline", action="store_true", help="Force baseline sequential mode with original Milestone 1 parameters (5 S2 retries, no range resume, 30s timeout)")
     return parser.parse_args(argv)
 
 
@@ -1128,6 +1194,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         )
+
+    if args.baseline:
+        args.n_workers = 1
+        args.parallel = False
 
     if args.parallel and args.n_workers <= 1:
         args.n_workers = 3
@@ -1185,6 +1255,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         n_workers=args.n_workers,
         download_workers=args.download_workers,
         s2_workers=args.s2_workers,
+        baseline=args.baseline,
     )
 
     return 0

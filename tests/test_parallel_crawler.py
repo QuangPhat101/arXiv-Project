@@ -85,7 +85,7 @@ class TestParallelCrawler(unittest.TestCase):
                     "versions": [f"{aid}v1"],
                 }
 
-            def fake_download(versioned_id, dest_path, session=None, timeout=60.0):
+            def fake_download(versioned_id, dest_path, session=None, timeout=60.0, **kwargs):
                 p = Path(dest_path)
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_bytes(b"dummy archive content")
@@ -96,7 +96,7 @@ class TestParallelCrawler(unittest.TestCase):
                 (target_dir / "paper.tex").write_text("\\documentclass{article}", encoding="utf-8")
                 return ExtractionResult.SUCCESS
 
-            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None):
+            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None, **kwargs):
                 p_dir = out_dir / arxiv_id
                 p_dir.mkdir(parents=True, exist_ok=True)
                 (p_dir / "references.json").write_text("[]", encoding="utf-8")
@@ -145,7 +145,7 @@ class TestParallelCrawler(unittest.TestCase):
             def fake_discover(aid, output_dir=None):
                 return {"arxiv_id": aid, "versions": [f"{aid}v1"]}
 
-            def fake_download(versioned_id, dest_path, session=None, timeout=60.0):
+            def fake_download(versioned_id, dest_path, session=None, timeout=60.0, **kwargs):
                 if "2506.00011" in versioned_id:
                     raise RuntimeError("Simulated network drop")
                 p = Path(dest_path)
@@ -158,7 +158,7 @@ class TestParallelCrawler(unittest.TestCase):
                 (target_dir / "main.tex").write_text("% latex", encoding="utf-8")
                 return ExtractionResult.SUCCESS
 
-            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None):
+            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None, **kwargs):
                 p_dir = out_dir / arxiv_id
                 p_dir.mkdir(parents=True, exist_ok=True)
                 (p_dir / "references.json").write_text("[]", encoding="utf-8")
@@ -194,7 +194,7 @@ class TestParallelCrawler(unittest.TestCase):
             def fake_discover(aid, output_dir=None):
                 return {"arxiv_id": aid, "versions": [f"{aid}v1"]}
 
-            def fake_download(versioned_id, dest_path, session=None, timeout=60.0):
+            def fake_download(versioned_id, dest_path, session=None, timeout=60.0, **kwargs):
                 p = Path(dest_path)
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_bytes(b"content")
@@ -205,7 +205,7 @@ class TestParallelCrawler(unittest.TestCase):
                 (target_dir / "paper.tex").write_text("% latex", encoding="utf-8")
                 return ExtractionResult.SUCCESS
 
-            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None):
+            def fake_refs(arxiv_id, output_dir=None, api_key=None, session=None, **kwargs):
                 p_dir = out_dir / arxiv_id
                 p_dir.mkdir(parents=True, exist_ok=True)
                 (p_dir / "references.json").write_text("[]", encoding="utf-8")
