@@ -141,12 +141,15 @@ def discover_papers_batch(
         chunk = cleaned_ids[i : i + chunk_size]
         chunk_max_retries = 4
         chunk_delay = 15.0
+        print(f"[Phase 1] Querying arXiv Discovery API for {len(chunk)} papers ({chunk[0]} -> {chunk[-1]})...", flush=True)
         for attempt in range(1, chunk_max_retries + 1):
             try:
                 if arxiv_rate_limiter:
                     arxiv_rate_limiter.wait()
                 search = arxiv.Search(id_list=chunk)
+                count = 0
                 for paper in client.results(search):
+                    count += 1
                     entry_id = paper.entry_id
                     raw_id = (
                         paper.get_short_id()
@@ -186,11 +189,16 @@ def discover_papers_batch(
                     if output_dir:
                         paper_dir = Path(output_dir) / matched_id
                         save_metadata(metadata, paper_dir / "metadata.json")
+                print(f"[Phase 1] Successfully received metadata for {count} papers from arXiv API.", flush=True)
                 break
             except Exception as exc:
                 exc_str = str(exc)
                 if any(code in exc_str for code in ["429", "Rate exceeded"]):
                     if attempt < chunk_max_retries:
+                        print(
+                            f"[Phase 1] arXiv API 429 Rate Limit. Sleeping {chunk_delay:.1f}s before retry {attempt + 1}/{chunk_max_retries}...",
+                            flush=True,
+                        )
                         logger.warning(
                             "arXiv API 429 (Rate limit) for chunk [%s...%s]. Cooling down for %.1fs before retry %d/%d...",
                             chunk[0], chunk[-1], chunk_delay, attempt + 1, chunk_max_retries,
