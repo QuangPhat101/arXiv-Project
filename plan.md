@@ -1,4 +1,4 @@
-# Kế hoạch thực hiện: Milestone 1 - Thu thập dữ liệu
+# Kế hoạch thực hiện: Milestone 1: Thu thập dữ liệu
 
 Hạn chót: Tối 6/11/2026
 
@@ -17,24 +17,28 @@ Sản phẩm bàn giao gồm hai bảng dữ liệu `papers` và `references`, t
 ```text
 <group-repo>/
 ├── src/
-│   ├── crawler.py          # Điều phối quy trình thu thập dữ liệu
+│   ├── crawler.py          # Điều phối quy trình thu thập dữ liệu (tuần tự và song song)
 │   ├── discovery.py        # Trích xuất metadata bài viết và danh sách phiên bản
-│   ├── downloader.py       # Tải tệp mã nguồn từ export.arxiv.org
+│   ├── downloader.py       # Tải tệp mã nguồn từ export.arxiv.org, hỗ trợ HTTP Range resume
 │   ├── extractor.py        # Giải nén archive, lọc lấy .tex và .bib
-│   ├── references.py       # Thu thập trích dẫn từ Semantic Scholar
-│   ├── utils.py            # Quản lý rate limit, cơ chế thử lại và ghi log
+│   ├── references.py       # Thu thập trích dẫn từ Semantic Scholar với khóa đồng bộ và jitter
+│   ├── profiler.py         # Theo dõi tài nguyên RAM, thời gian phase và xuất dữ liệu benchmark
+│   ├── utils.py            # Quản lý rate limit thread-safe, cơ chế thử lại và ghi log
 │   └── requirements.txt
+├── tests/
+│   └── test_parallel_crawler.py # Kiểm thử đơn vị cho pipeline song song và tính an toàn luồng
 └── README.md
 ```
 
 Quy định kỹ thuật cho từng tệp trong `src/`:
 
 - `discovery.py`: Dùng thư viện `arxiv` (bản 4.x trở lên, cú pháp `client.results(search)`). Gọi batch `arxiv.Search(id_list=[...])` qua `arxiv.Client().results(search)` theo từng cụm 50 đến 100 ID để tiết kiệm thời gian mạng. Đọc `.entry_id` chứa hậu tố phiên bản mới nhất (ví dụ `2505.10666v3`) để suy ra danh sách phiên bản từ v1 đến v3. Trích xuất metadata chuẩn gồm: `arxiv_id`, `title`, `authors`, `submission_date`, `revised_dates`, `venue`. Lưu kết quả vào `metadata.json`.
-- `downloader.py`: Tải mã nguồn từng phiên bản qua `https://export.arxiv.org/src/{versioned_id}`. Dùng `User-Agent` định danh nhóm. Không gửi request trực tiếp đến `arxiv.org` để tránh lỗi HTTP 403. Giãn cách tối thiểu 3 giây giữa các request.
+- `downloader.py`: Tải mã nguồn từng phiên bản qua `https://export.arxiv.org/src/{versioned_id}`. Dùng `User-Agent` định danh nhóm. Không gửi request trực tiếp đến `arxiv.org` để tránh lỗi HTTP 403. Giãn cách tối thiểu 3 giây giữa các request. Quản lý tệp tạm `.part` và hỗ trợ cờ `allow_resume` (sử dụng header `Range: bytes={existing_bytes}-` và mã HTTP 206) để nối tiếp dữ liệu khi mạng bị đứt ngắt giữa chừng.
 - `extractor.py`: Giải nén tệp tải về và chỉ giữ lại `.tex`, `.bib`. Xử lý tệp `tar.gz` bằng `tarfile` (lọc tệp trước khi giải nén, kiểm tra tránh lỗi Zip Slip), tệp `gzip` đơn, và bài viết dạng PDF thuần (tạo thư mục rỗng và đánh dấu hoàn thành qua file `.complete` chứa `PDF_ONLY`). Không chỉnh sửa nội dung văn bản bên trong tệp `.tex`. Giữ nguyên các thẻ `\includegraphics` và môi trường `figure`.
-- `references.py`: Gọi `GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{base_id}` với tham số fields dạng phẳng chứa `references.title,references.authors,references.year,references.publicationDate,references.venue,references.externalIds`. Lấy `ref_arxiv_id` từ `externalIds.ArXiv`, `ref_s2_id` từ `paperId`. Lưu toàn bộ danh sách trích xuất thô vào `references.json`. Giữ nguyên định dạng ID cũ của arXiv (ví dụ `hep-th/9901001`). Xử lý mã 429 bằng thuật toán exponential backoff.
-- `utils.py`: Cung cấp bộ rate limiter dùng chung bằng đồng hồ đơn điệu `time.monotonic()` (3 giây cho arXiv, 1 giây cho Semantic Scholar). Chỉ tính thời gian chờ cần thiết thay vì sleep cố định. Cung cấp decorator thử lại với exponential backoff và cấu hình ghi log.
-- `crawler.py`: Tiếp nhận tham số dòng lệnh `--month`, `--start`, `--end`, `--output`. Quản lý cơ chế kiểm tra checkpoint hai lớp (cấp bài báo và cấp phiên bản) để chạy tiếp khi bị ngắt quãng. Đo lường kích thước archive trước khi xóa và kích thước `.tex`, `.bib` sau trích xuất để phục vụ báo cáo hiệu năng. Bắt lỗi cục bộ theo từng bài viết để tránh dừng toàn bộ quy trình.
+- `references.py`: Gọi `GET https://api.semanticscholar.org/graph/v1/paper/arXiv:{base_id}` với tham số fields dạng phẳng chứa `references.title,references.authors,references.year,references.publicationDate,references.venue,references.externalIds`. Lấy `ref_arxiv_id` từ `externalIds.ArXiv`, `ref_s2_id` từ `paperId`. Lưu toàn bộ danh sách trích xuất thô vào `references.json`. Giữ nguyên định dạng ID cũ của arXiv (ví dụ `hep-th/9901001`). Xử lý mã 429 bằng thuật toán exponential backoff kèm jitter ngẫu nhiên và bảo vệ trạng thái cooldown bằng khóa `_s2_lock`.
+- `utils.py`: Cung cấp bộ rate limiter dùng chung bằng đồng hồ đơn điệu `time.monotonic()` (3 giây cho arXiv, 1 giây cho Semantic Scholar) có trang bị khóa `threading.Lock()` đảm bảo thread-safe. Chỉ tính thời gian chờ cần thiết thay vì sleep cố định. Cung cấp decorator thử lại với exponential backoff và cấu hình ghi log.
+- `profiler.py`: Cung cấp lớp `CrawlerProfiler` chạy nền lấy mẫu RAM qua `psutil`, đo thời gian phân rã từng giai đoạn (discovery, download, extract, s2_references, rate_limit_sleep), phân loại nguyên nhân lỗi và trích xuất số liệu JSON phục vụ phân tích benchmark.
+- `crawler.py`: Tiếp nhận tham số dòng lệnh linh hoạt (`--month`, `--start`, `--end`, `--output`, `--parallel`, `--baseline`, `--n-workers`, `--download-workers`, `--s2-workers`, `--stats-file`). Hỗ trợ cả pipeline tuần tự đối chứng và pipeline song song 3 giai đoạn (Producer-Consumer) với các hàng đợi `download_queue` và `extract_s2_queue`. Quản lý cơ chế kiểm tra checkpoint hai lớp (cấp bài báo và cấp phiên bản) để chạy tiếp khi bị ngắt quãng. Bắt lỗi cục bộ theo từng bài viết để tránh dừng toàn bộ quy trình.
 
 ## 3. Phân chia dải ID
 
@@ -55,7 +59,7 @@ data/2505.10666/
 │   ├── main.tex
 │   └── refs.bib
 ├── v2/
-│   └── main.tex
+│   ├── main.tex
 └── ...
 ```
 
@@ -98,7 +102,7 @@ Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 └── README.md
 ```
 
-﻿Nội dung báo cáo:
+Nội dung báo cáo:
 - Ngôn ngữ: Sử dụng hoàn toàn bằng Tiếng Anh (ngôn ngữ chính thức của chương trình đào tạo).
 - Bảng biểu và đồ thị: Bắt buộc tự sinh bằng code khi compile Jupyter Book (`execute_notebooks: auto`), tuyệt đối không dùng ảnh chụp màn hình tĩnh.
 - Tài liệu kỹ thuật: Mô tả chi tiết quy trình cào, thư viện sử dụng (arXiv API, Semantic Scholar API, requests), luồng xử lý và cách giải quyết các trường hợp biên (PDF-only, Zip Slip, mã 429).
@@ -138,7 +142,6 @@ Triển khai trên GitHub Pages từ một kho lưu trữ riêng biệt:
 3. Tiếp nhận hai bảng dữ liệu và các chỉ số thống kê từ Bảo để trực tiếp viết toàn bộ mã nguồn vẽ biểu đồ phân tích trong `statistics.ipynb`.
 4. Soạn thảo toàn bộ nội dung phân tích biểu đồ, nhận xét số liệu và ghi nhận các trường hợp biên khi thu thập dữ liệu bằng Tiếng Anh trong `statistics.ipynb`.
 5. Thiết lập và kiểm tra GitHub Actions tự động execute notebook và xuất bản Jupyter Book lên GitHub Pages (`execute_notebooks: auto`).
-
 
 ## 7. Kế hoạch thời gian
 
