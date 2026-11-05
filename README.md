@@ -9,7 +9,7 @@ Hệ thống cung cấp giải pháp thu thập tự động cho tập bài báo
 - Tải mã nguồn LaTeX: Thu thập toàn bộ các phiên bản mã nguồn thô từ export mirror chính thức của arXiv.
 - Trích xuất chọn lọc: Giải nén và chỉ giữ lại các tệp `.tex` và `.bib`, loại bỏ hình ảnh và tệp nhị phân để tiết kiệm hơn 90% dung lượng lưu trữ.
 - Thu thập trích dẫn: Tích hợp với Semantic Scholar Graph API để lấy thông tin các bài báo được trích dẫn.
-- Xử lý song song: Hỗ trợ đường ống Producer-Consumer đa luồng, tối ưu hóa thời gian chờ mạng trong khi vẫn tuân thủ nghiêm ngặt các quy định về tần suất truy vấn.
+- Xử lý song song: Hỗ trợ cơ chế Producer-Consumer đa luồng, giúp tối ưu hóa thời gian chờ mạng trong khi vẫn tuân thủ nghiêm ngặt các quy định về tần suất truy vấn.
 
 ## 2. Cấu trúc thư mục
 
