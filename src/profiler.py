@@ -25,9 +25,10 @@ except ImportError:
 class CrawlerProfiler:
     """Monitors process resource consumption and phase timings during crawling."""
 
-    def __init__(self, sample_interval: float = 1.0) -> None:
-        """Initialize profiler with a sampling interval in seconds."""
+    def __init__(self, sample_interval: float = 1.0, n_workers: int = 1) -> None:
+        """Initialize profiler with a sampling interval in seconds and worker count."""
         self.sample_interval = sample_interval
+        self.n_workers = n_workers
         self._monitoring = False
         self._monitor_thread: Optional[threading.Thread] = None
         self._start_wall_time = 0.0
@@ -50,6 +51,7 @@ class CrawlerProfiler:
 
         # Per-paper records
         self.paper_records: List[Dict[str, Any]] = []
+        self._records_lock = threading.Lock()
 
     def start(self) -> None:
         """Start the background monitoring thread and wall timer."""
@@ -139,7 +141,8 @@ class CrawlerProfiler:
         if error:
             record["error"] = error
 
-        self.paper_records.append(record)
+        with self._records_lock:
+            self.paper_records.append(record)
 
     def get_summary(self) -> Dict[str, Any]:
         """Aggregate all collected telemetry into a structured dictionary."""
@@ -150,18 +153,21 @@ class CrawlerProfiler:
         peak_ram = max(self.ram_samples_mb) if self.ram_samples_mb else 0.0
         avg_ram = (sum(self.ram_samples_mb) / len(self.ram_samples_mb)) if self.ram_samples_mb else 0.0
 
-        total_raw = sum(r["raw_bytes"] for r in self.paper_records)
-        total_ext = sum(r["extracted_bytes"] for r in self.paper_records)
+        with self._records_lock:
+            records_snapshot = list(self.paper_records)
+
+        total_raw = sum(r["raw_bytes"] for r in records_snapshot)
+        total_ext = sum(r["extracted_bytes"] for r in records_snapshot)
         savings_pct = round((1 - total_ext / total_raw) * 100, 2) if total_raw > 0 else 0.0
 
-        n_papers = len(self.paper_records)
+        n_papers = len(records_snapshot)
         avg_time = round(wall_time / n_papers, 2) if n_papers > 0 else 0.0
 
         # Sample timeline if large to keep JSON lightweight
         step = max(1, len(self.timestamps) // 200)
 
         # Aggregate failure reasons
-        failed_records = [r for r in self.paper_records if "FAILED" in r.get("status", "") or r.get("error")]
+        failed_records = [r for r in records_snapshot if "FAILED" in r.get("status", "") or r.get("error")]
         failure_reasons: Dict[str, int] = {}
         for r in failed_records:
             err = r.get("error", "Unspecified error")
@@ -186,12 +192,13 @@ class CrawlerProfiler:
                 "python_version": platform.python_version(),
             },
             "run_summary": {
+                "n_workers": getattr(self, "n_workers", 1),
                 "evaluated_papers": n_papers,
                 "wall_time_s": round(wall_time, 2),
                 "wall_time_min": round(wall_time / 60, 2),
                 "avg_time_per_paper_s": avg_time,
-                "success_count": sum(1 for r in self.paper_records if "SUCCESS" in r["status"]),
-                "pdf_only_count": sum(1 for r in self.paper_records if "PDF_ONLY" in r["status"]),
+                "success_count": sum(1 for r in records_snapshot if "SUCCESS" in r["status"]),
+                "pdf_only_count": sum(1 for r in records_snapshot if "PDF_ONLY" in r["status"]),
                 "failed_count": len(failed_records),
                 "failure_reasons": failure_reasons,
             },
@@ -219,7 +226,7 @@ class CrawlerProfiler:
                 }
                 for r in failed_records
             ],
-            "paper_records": self.paper_records,
+            "paper_records": records_snapshot,
         }
 
     def print_summary_table(self) -> None:

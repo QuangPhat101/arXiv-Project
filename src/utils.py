@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 import time
 from functools import wraps
 from pathlib import Path
@@ -56,6 +57,7 @@ class RateLimiter:
         """
         self.min_interval = min_interval
         self.last_request_time: float = 0.0
+        self._lock = threading.Lock()
 
     def wait(self) -> float:
         """Wait if necessary to satisfy the minimum interval requirement.
@@ -63,21 +65,23 @@ class RateLimiter:
         Calculates elapsed time since `last_request_time` using `time.monotonic()`.
         If elapsed < min_interval, sleeps for `(min_interval - elapsed)`.
         Updates `last_request_time` to current monotonic time.
+        Thread-safe across multiple concurrent workers.
 
         Returns:
             float: Number of seconds slept (0.0 if no sleep was needed).
         """
-        now = time.monotonic()
-        elapsed = now - self.last_request_time
-        remaining = self.min_interval - elapsed
-        slept = 0.0
+        with self._lock:
+            now = time.monotonic()
+            elapsed = now - self.last_request_time
+            remaining = self.min_interval - elapsed
+            slept = 0.0
 
-        if self.last_request_time > 0.0 and remaining > 0.0:
-            time.sleep(remaining)
-            slept = remaining
+            if self.last_request_time > 0.0 and remaining > 0.0:
+                time.sleep(remaining)
+                slept = remaining
 
-        self.last_request_time = time.monotonic()
-        return slept
+            self.last_request_time = time.monotonic()
+            return slept
 
 
 # Pre-configured instances for arXiv and Semantic Scholar

@@ -64,6 +64,7 @@ def download_source(
     dest_path: Path | str,
     timeout: float = 30.0,
     session: Optional[Any] = None,
+    allow_resume: bool = False,
 ) -> Optional[Path]:
     """Download the source archive for a given versioned arXiv ID.
 
@@ -71,25 +72,30 @@ def download_source(
         1. Ensure dest_path parent directory exists.
         2. Enforce arXiv rate limit (3s minimum gap) using `arxiv_rate_limiter.wait()`.
         3. Make GET request to `https://export.arxiv.org/src/{versioned_id}` using session or requests.
+           Supports HTTP Range resumption if allow_resume is True and a previous attempt was interrupted.
         4. Check status code:
            - 200: Stream content to dest_path (chunk size 64KB), return Path(dest_path).
+           - 206: Append resumed content to partial destination via HTTP Range header.
            - 404: Source package does not exist on arXiv (PDF-only submission). Return None.
            - 403 / 429 / 5xx: Must retry with backoff. If exhausted, raise RuntimeError.
 
     Args:
         versioned_id: Versioned arXiv identifier (e.g., '2505.10666v1').
         dest_path: Destination file path where archive will be saved.
-        timeout: Network request timeout in seconds.
+        timeout: Network request timeout in seconds (default: 30.0s for baseline, 60.0s for parallel).
         session: Optional reusable `requests.Session`.
+        allow_resume: If True, uses HTTP Range resumption on partial drop (parallel mode).
+                      If False, drops partial file and restarts (original baseline mode).
 
     Returns:
-        Optional[Path]: Path to downloaded archive if 200, None if 404 (not available).
+        Optional[Path]: Path to downloaded archive if 200/206, None if 404 (not available).
 
     Raises:
         RuntimeError: If download fails due to network or server errors after all retries.
     """
     dest = Path(dest_path)
     dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp_dest = dest.with_name(f"{dest.name}.part")
 
     url = get_source_url(versioned_id)
     headers = {"User-Agent": DEFAULT_USER_AGENT}
@@ -104,22 +110,37 @@ def download_source(
     )
     def _fetch_and_stream() -> Optional[Path]:
         arxiv_rate_limiter.wait()
-        resp = req_func(url, headers=headers, stream=True, timeout=timeout)
+
+        req_headers = dict(headers)
+        existing_bytes = tmp_dest.stat().st_size if (allow_resume and tmp_dest.is_file()) else 0
+        if existing_bytes > 0:
+            req_headers["Range"] = f"bytes={existing_bytes}-"
+
+        resp = req_func(url, headers=req_headers, stream=True, timeout=timeout)
         if resp.status_code == 404:
             logger.info("[%s] No LaTeX source archive available on arXiv (HTTP 404, PDF-only).", versioned_id)
+            if tmp_dest.exists():
+                tmp_dest.unlink(missing_ok=True)
             return None
+
+        # If server honors Range (206), append; if 200, server returned full file from start
+        write_mode = "ab" if (resp.status_code == 206 and existing_bytes > 0) else "wb"
         resp.raise_for_status()
 
-        tmp_dest = dest.with_name(f"{dest.name}.part")
         try:
-            with open(tmp_dest, "wb") as f:
+            with open(tmp_dest, write_mode) as f:
                 for chunk in resp.iter_content(chunk_size=65536):
                     if chunk:
                         f.write(chunk)
             tmp_dest.replace(dest)
         except Exception as stream_err:
-            if tmp_dest.exists():
-                tmp_dest.unlink(missing_ok=True)
+            if not allow_resume:
+                if tmp_dest.exists():
+                    tmp_dest.unlink(missing_ok=True)
+            else:
+                # Keep partial tmp_dest so next retry can resume via HTTP Range
+                logger.warning("[%s] Stream interrupted (%s). Preserving %d bytes for resume.",
+                               versioned_id, stream_err, tmp_dest.stat().st_size if tmp_dest.is_file() else 0)
             raise stream_err
         finally:
             resp.close()
@@ -128,5 +149,7 @@ def download_source(
     try:
         return _fetch_and_stream()
     except Exception as exc:
+        if tmp_dest.exists():
+            tmp_dest.unlink(missing_ok=True)
         logger.error("[%s] Failed to download source archive after all retries: %s", versioned_id, exc)
         raise RuntimeError(f"Download failed for {versioned_id}: {exc}") from exc

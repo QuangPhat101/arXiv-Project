@@ -18,10 +18,12 @@ import argparse
 import json
 import logging
 import os
+import queue
 import re
 import shutil
 import sys
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -213,6 +215,11 @@ def crawl_single_paper(
     profiler: Optional[Any] = None,
     paper_phases: Optional[dict[str, float]] = None,
     error_holder: Optional[list[str]] = None,
+    force_recrawl: bool = False,
+    s2_max_retries: int = 5,
+    s2_use_jitter: bool = False,
+    download_timeout: float = 30.0,
+    download_allow_resume: bool = False,
 ) -> bool:
     """Execute the crawling pipeline for a single paper with strict error validation.
 
@@ -230,7 +237,7 @@ def crawl_single_paper(
     paper_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Discovery
-    metadata = _read_json(paper_dir / "metadata.json")
+    metadata = None if force_recrawl else _read_json(paper_dir / "metadata.json")
     if not isinstance(metadata, dict) or not metadata.get("versions"):
         if metadata_cache and arxiv_id in metadata_cache:
             metadata = metadata_cache[arxiv_id]
@@ -264,17 +271,30 @@ def crawl_single_paper(
 
     versions: list[str] = metadata["versions"]
 
-    # 2. Parallel / Async trigger for Semantic Scholar references
-    # Fetch references while downloading sources to optimize overall wall-clock time
-    refs_exist = isinstance(_read_json(paper_dir / "references.json"), list)
+    # 2. Semantic Scholar references
+    refs_exist = False if force_recrawl else isinstance(_read_json(paper_dir / "references.json"), list)
     if not refs_exist:
         try:
             t_s2_start = time.perf_counter()
             if profiler:
                 with profiler.time_phase("s2_references"):
-                    get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                    get_references(
+                        arxiv_id,
+                        output_dir=output_dir,
+                        api_key=s2_api_key,
+                        session=session,
+                        max_retries=s2_max_retries,
+                        use_jitter=s2_use_jitter,
+                    )
             else:
-                get_references(arxiv_id, output_dir=output_dir, api_key=s2_api_key, session=session)
+                get_references(
+                    arxiv_id,
+                    output_dir=output_dir,
+                    api_key=s2_api_key,
+                    session=session,
+                    max_retries=s2_max_retries,
+                    use_jitter=s2_use_jitter,
+                )
             if paper_phases is not None:
                 paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
         except NotImplementedError:
@@ -295,7 +315,7 @@ def crawl_single_paper(
             v_suffix = f"v{version_id.split('v')[-1]}"
 
         version_dir = paper_dir / v_suffix
-        if is_version_completed(version_dir):
+        if not force_recrawl and is_version_completed(version_dir):
             logger.debug("[%s] Version %s already completed, skipping.", arxiv_id, v_suffix)
             continue
 
@@ -310,12 +330,16 @@ def crawl_single_paper(
                         versioned_id=version_id,
                         dest_path=temp_archive_path,
                         session=session,
+                        timeout=download_timeout,
+                        allow_resume=download_allow_resume,
                     )
             else:
                 downloaded_file = download_source(
                     versioned_id=version_id,
                     dest_path=temp_archive_path,
                     session=session,
+                    timeout=download_timeout,
+                    allow_resume=download_allow_resume,
                 )
             if paper_phases is not None:
                 paper_phases["download"] += (time.perf_counter() - t_dl_start)
@@ -384,7 +408,7 @@ def crawl_single_paper(
     return is_paper_complete(paper_dir)
 
 
-def run_pipeline(
+def run_sequential_pipeline(
     arxiv_ids: Sequence[str],
     output_dir: Path,
     resume: bool = True,
@@ -393,24 +417,30 @@ def run_pipeline(
     s2_api_key: Optional[str] = None,
     profile: bool = False,
     profile_output: Optional[Path] = None,
+    baseline: bool = False,
 ) -> dict[str, Any]:
-    """Execute the pipeline over target arXiv IDs with batch discovery and version-level resume."""
+    """Execute the baseline sequential pipeline over target arXiv IDs."""
     output_dir.mkdir(parents=True, exist_ok=True)
     if checkpoint_file is None:
         checkpoint_file = output_dir / "checkpoint.txt"
 
     profiler = None
     if profile and CrawlerProfiler is not None:
-        profiler = CrawlerProfiler(sample_interval=1.0)
+        profiler = CrawlerProfiler(sample_interval=1.0, n_workers=1)
         profiler.start()
 
-    completed_ids = load_checkpoint(checkpoint_file) if resume else set()
     failed_papers: dict[str, str] = {}
     success_count = 0
     skipped_count = 0
 
-    pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
-    skipped_count = len(arxiv_ids) - len(pending_ids)
+    if resume:
+        completed_ids = load_checkpoint(checkpoint_file)
+        pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
+        skipped_count = len(arxiv_ids) - len(pending_ids)
+    else:
+        completed_ids = set()
+        pending_ids = list(arxiv_ids)
+        skipped_count = 0
 
     logger.info("Total targets: %d | Completed previously: %d | Pending: %d", len(arxiv_ids), skipped_count, len(pending_ids))
 
@@ -427,18 +457,21 @@ def run_pipeline(
             "elapsed_seconds": 0.0,
         }
 
-    # Session reuse for HTTP connection pooling
     session = requests.Session() if requests else None
     temp_dir = Path(tempfile.mkdtemp(prefix="arxiv_src_", dir=output_dir))
     start_time = time.perf_counter()
 
     try:
         # Phase 1: High-Performance Batch Discovery
-        missing_meta = [
-            aid for aid in pending_ids
-            if not (output_dir / aid / "metadata.json").is_file()
-            or not _read_json(output_dir / aid / "metadata.json")
-        ]
+        if resume:
+            missing_meta = [
+                aid for aid in pending_ids
+                if not (output_dir / aid / "metadata.json").is_file()
+                or not _read_json(output_dir / aid / "metadata.json")
+            ]
+        else:
+            missing_meta = list(pending_ids)
+
         metadata_cache: dict[str, Any] = {}
         if missing_meta:
             logger.info("Phase 1: Running Batch Discovery for %d papers lacking metadata...", len(missing_meta))
@@ -457,8 +490,8 @@ def run_pipeline(
         else:
             logger.info("Phase 1: Skipping remote discovery (100%% of metadata exists locally for %d papers).", len(pending_ids))
 
-        # Phase 2: Process Download & Extraction per paper
-        logger.info("Phase 2: Downloading & Extracting paper sources...")
+        # Phase 2: Process Download & Extraction per paper sequentially
+        logger.info("Phase 2: Downloading & Extracting paper sources (Sequential Mode)...")
 
         for idx, arxiv_id in enumerate(pending_ids, 1):
             t_paper_start = time.perf_counter()
@@ -475,12 +508,15 @@ def run_pipeline(
                     profiler=profiler,
                     paper_phases=cur_phases,
                     error_holder=cur_errors,
+                    force_recrawl=not resume,
+                    s2_max_retries=5 if baseline else 10,
+                    s2_use_jitter=False if baseline else True,
+                    download_timeout=30.0 if baseline else 60.0,
+                    download_allow_resume=False if baseline else True,
                 )
                 paper_duration = time.perf_counter() - t_paper_start
-
                 fail_reason = cur_errors[0] if (not success and cur_errors) else None
 
-                # Parse paper sizes for profiler record (.complete stamp file)
                 paper_dir = output_dir / arxiv_id
                 raw_bytes = 0
                 ext_bytes = 0
@@ -502,7 +538,6 @@ def run_pipeline(
                                     ext_bytes += int(part.split(":")[1])
                                 except ValueError:
                                     pass
-                    # Fallback to direct file inspection if extracted_bytes wasn't embedded in stamp
                     if ext_bytes == 0 and status_str != "PDF_ONLY" and v_dir.is_dir():
                         ext_bytes = sum(
                             f.stat().st_size
@@ -521,7 +556,6 @@ def run_pipeline(
                         error=fail_reason,
                     )
 
-                # Live unbuffered status log - guarantees immediate visibility on Colab/terminal
                 current_ram = 0.0
                 if psutil:
                     try:
@@ -558,7 +592,6 @@ def run_pipeline(
                         error=fail_reason,
                     )
 
-            # Clean 3.0s cooldown between consecutive papers
             if profiler:
                 with profiler.time_phase("rate_limit_sleep"):
                     time.sleep(3.0)
@@ -587,7 +620,7 @@ def run_pipeline(
     }
 
     logger.info("=" * 60)
-    logger.info("CRAWL SUMMARY REPORT")
+    logger.info("SEQUENTIAL CRAWL SUMMARY REPORT")
     logger.info("Total targets:     %d", summary["total_targets"])
     logger.info("Skipped (resume):  %d", summary["skipped"])
     logger.info("Succeeded:         %d", summary["succeeded"])
@@ -598,6 +631,531 @@ def run_pipeline(
     return summary
 
 
+class PaperDownloadJob:
+    """Encapsulates job metadata passed from Discovery Producer to Download Workers."""
+
+    def __init__(self, arxiv_id: str, metadata: dict[str, Any]) -> None:
+        self.arxiv_id = arxiv_id
+        self.metadata = metadata
+
+
+class PaperProcessJob:
+    """Encapsulates downloaded archive references passed from Download Workers to Extract+S2 Workers."""
+
+    def __init__(
+        self,
+        arxiv_id: str,
+        metadata: dict[str, Any],
+        archives: dict[str, Optional[Path]],
+        paper_phases: dict[str, float],
+        start_time: float,
+        error: Optional[str] = None,
+    ) -> None:
+        self.arxiv_id = arxiv_id
+        self.metadata = metadata
+        self.archives = archives
+        self.paper_phases = paper_phases
+        self.start_time = start_time
+        self.error = error
+
+
+def run_parallel_pipeline(
+    arxiv_ids: Sequence[str],
+    output_dir: Path,
+    resume: bool = True,
+    checkpoint_file: Optional[Path] = None,
+    batch_size: int = 100,
+    s2_api_key: Optional[str] = None,
+    profile: bool = False,
+    profile_output: Optional[Path] = None,
+    n_workers: int = 3,
+    download_workers: Optional[int] = None,
+    s2_workers: Optional[int] = None,
+) -> dict[str, Any]:
+    """Execute the 3-Stage Producer-Consumer Parallel Pipeline.
+
+    Architecture:
+        [ Discovery (1 Producer) ]
+                    | (Queue 1: maxsize 20)
+                    v
+        [ Download Pool (I/O Workers: 3-5) ] (arXiv polite rate limiter: 3.0s)
+                    | (Queue 2: maxsize 10)
+                    v
+        [ S2 References + Extract Pool (2-4 Workers) ] (Semantic Scholar rate limiter)
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if checkpoint_file is None:
+        checkpoint_file = output_dir / "checkpoint.txt"
+
+    dl_workers_cnt = max(1, download_workers or n_workers)
+    s2_workers_cnt = max(1, s2_workers or min(dl_workers_cnt, 4))
+
+    # Configure S2 rate limiter interval based on API key availability
+    if s2_api_key:
+        s2_rate_limiter.min_interval = 1.0
+    else:
+        s2_rate_limiter.min_interval = 2.5
+
+    profiler = None
+    if profile and CrawlerProfiler is not None:
+        profiler = CrawlerProfiler(sample_interval=1.0, n_workers=dl_workers_cnt)
+        profiler.start()
+
+    failed_papers: dict[str, str] = {}
+    success_count = [0]
+    processed_count = [0]
+
+    if resume:
+        completed_ids = load_checkpoint(checkpoint_file)
+        pending_ids = [aid for aid in arxiv_ids if aid not in completed_ids or not is_paper_complete(output_dir / aid)]
+        skipped_count = len(arxiv_ids) - len(pending_ids)
+    else:
+        completed_ids = set()
+        pending_ids = list(arxiv_ids)
+        skipped_count = 0
+
+    logger.info(
+        "Parallel Pipeline: Targets=%d | Skipped=%d | Pending=%d | Download Workers=%d | S2 Workers=%d",
+        len(arxiv_ids),
+        skipped_count,
+        len(pending_ids),
+        dl_workers_cnt,
+        s2_workers_cnt,
+    )
+
+    if not pending_ids:
+        logger.info("All target papers are already completed.")
+        if profiler:
+            profiler.stop()
+        return {
+            "total_targets": len(arxiv_ids),
+            "skipped": skipped_count,
+            "succeeded": 0,
+            "failed": 0,
+            "failed_papers": {},
+            "elapsed_seconds": 0.0,
+        }
+
+    download_queue: queue.Queue[Optional[PaperDownloadJob]] = queue.Queue(maxsize=20)
+    extract_s2_queue: queue.Queue[Optional[PaperProcessJob]] = queue.Queue(maxsize=10)
+    temp_dir = Path(tempfile.mkdtemp(prefix="arxiv_src_", dir=output_dir))
+
+    state_lock = threading.Lock()
+    profiler_lock = threading.Lock()
+    print_lock = threading.Lock()
+
+    start_time = time.perf_counter()
+
+    # ── Stage 1: Discovery Producer ───────────────────────────────────────────
+    def discovery_producer():
+        try:
+            if resume:
+                missing_meta = [
+                    aid for aid in pending_ids
+                    if not (output_dir / aid / "metadata.json").is_file()
+                    or not _read_json(output_dir / aid / "metadata.json")
+                ]
+            else:
+                missing_meta = list(pending_ids)
+            metadata_cache: dict[str, Any] = {}
+            if missing_meta:
+                logger.info("Stage 1 Discovery: Batch querying metadata for %d papers...", len(missing_meta))
+                for i in range(0, len(missing_meta), batch_size):
+                    chunk = missing_meta[i:i + batch_size]
+                    try:
+                        if profiler:
+                            with profiler.time_phase("discovery"):
+                                chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
+                        else:
+                            chunk_meta = discover_papers_batch(chunk, output_dir=output_dir)
+                        if chunk_meta:
+                            metadata_cache.update(chunk_meta)
+                    except Exception as exc:
+                        logger.warning("Batch discovery warning on chunk: %s", exc)
+
+            for aid in pending_ids:
+                paper_dir = output_dir / aid
+                paper_dir.mkdir(parents=True, exist_ok=True)
+                meta = _read_json(paper_dir / "metadata.json") or metadata_cache.get(aid)
+                if not meta or not meta.get("versions"):
+                    try:
+                        if profiler:
+                            with profiler.time_phase("discovery"):
+                                meta = discover_paper(aid, output_dir=output_dir)
+                        else:
+                            meta = discover_paper(aid, output_dir=output_dir)
+                    except Exception:
+                        meta = {
+                            "arxiv_id": aid,
+                            "title": "",
+                            "authors": [],
+                            "versions": [f"{aid}v1"],
+                        }
+                        with open(paper_dir / "metadata.json", "w", encoding="utf-8") as f:
+                            json.dump(meta, f, indent=2)
+
+                download_queue.put(PaperDownloadJob(arxiv_id=aid, metadata=meta))
+
+        except Exception as exc:
+            logger.exception("Stage 1 Discovery Producer exception: %s", exc)
+        finally:
+            for _ in range(dl_workers_cnt):
+                download_queue.put(None)
+
+    # ── Stage 2: Download Workers ─────────────────────────────────────────────
+    def download_worker_loop(worker_id: int):
+        session = requests.Session() if requests else None
+        try:
+            while True:
+                job = download_queue.get()
+                if job is None:
+                    download_queue.task_done()
+                    break
+
+                arxiv_id = job.arxiv_id
+                metadata = job.metadata
+                paper_dir = output_dir / arxiv_id
+                versions = metadata.get("versions", [f"{arxiv_id}v1"])
+                archives: dict[str, Optional[Path]] = {}
+                paper_phases: dict[str, float] = {
+                    "discovery": 0.0,
+                    "download": 0.0,
+                    "extract": 0.0,
+                    "s2_references": 0.0,
+                    "rate_limit_sleep": 0.0,
+                }
+                error = None
+                t_paper_start = time.perf_counter()
+
+                for version_id in versions:
+                    v_suffix = f"v{version_id.split('v')[-1]}" if "v" in version_id else "v1"
+                    version_dir = paper_dir / v_suffix
+                    if resume and is_version_completed(version_dir):
+                        continue
+
+                    temp_archive_path = temp_dir / f"{version_id}.archive"
+                    try:
+                        t_dl_start = time.perf_counter()
+                        if profiler:
+                            with profiler.time_phase("download"):
+                                dl_path = download_source(
+                                    versioned_id=version_id,
+                                    dest_path=temp_archive_path,
+                                    session=session,
+                                    timeout=60.0,
+                                    allow_resume=True,
+                                )
+                        else:
+                            dl_path = download_source(
+                                versioned_id=version_id,
+                                dest_path=temp_archive_path,
+                                session=session,
+                                timeout=60.0,
+                                allow_resume=True,
+                            )
+                        paper_phases["download"] += (time.perf_counter() - t_dl_start)
+                        archives[version_id] = dl_path
+                    except Exception as exc:
+                        error = f"Download {version_id}: {exc}"
+                        logger.error("[%s] %s", arxiv_id, error)
+                        break
+
+                proc_job = PaperProcessJob(
+                    arxiv_id=arxiv_id,
+                    metadata=metadata,
+                    archives=archives,
+                    paper_phases=paper_phases,
+                    start_time=t_paper_start,
+                    error=error,
+                )
+                extract_s2_queue.put(proc_job)
+                download_queue.task_done()
+        except Exception as exc:
+            logger.exception("DownloadWorker-%d fatal error: %s", worker_id, exc)
+        finally:
+            if session:
+                session.close()
+
+    # ── Stage 3: Extract + S2 Workers ─────────────────────────────────────────
+    def extract_s2_worker_loop(worker_id: int):
+        session = requests.Session() if requests else None
+        try:
+            while True:
+                job = extract_s2_queue.get()
+                if job is None:
+                    extract_s2_queue.task_done()
+                    break
+
+                arxiv_id = job.arxiv_id
+                metadata = job.metadata
+                paper_dir = output_dir / arxiv_id
+                paper_phases = job.paper_phases
+                error = job.error
+                success = (error is None)
+
+                # 1. Extraction (only if download succeeded)
+                if success:
+                    versions = metadata.get("versions", [f"{arxiv_id}v1"])
+                    for version_id in versions:
+                        v_suffix = f"v{version_id.split('v')[-1]}" if "v" in version_id else "v1"
+                        version_dir = paper_dir / v_suffix
+                        if resume and is_version_completed(version_dir):
+                            continue
+
+                        archive_file = job.archives.get(version_id)
+                        if archive_file is None:
+                            # 404 indicates PDF-only submission
+                            mark_version_completed(version_dir, status="PDF_ONLY|raw_bytes:0|extracted_bytes:0")
+                            continue
+
+                        archive_size_bytes = archive_file.stat().st_size if archive_file.exists() else 0
+                        try:
+                            t_ext_start = time.perf_counter()
+                            if profiler:
+                                with profiler.time_phase("extract"):
+                                    extract_result = extract_tex_bib(
+                                        archive_path=archive_file,
+                                        target_dir=version_dir,
+                                    )
+                            else:
+                                extract_result = extract_tex_bib(
+                                    archive_path=archive_file,
+                                    target_dir=version_dir,
+                                )
+                            paper_phases["extract"] += (time.perf_counter() - t_ext_start)
+
+                            if extract_result == ExtractionResult.FAILED:
+                                success = False
+                                error = f"Extraction failed for {version_id} (corrupted or unsupported format)"
+                                break
+
+                            extracted_size_bytes = sum(
+                                f.stat().st_size
+                                for f in version_dir.iterdir()
+                                if f.is_file() and f.suffix.lower() in {".tex", ".bib"}
+                            )
+                            status_payload = f"{extract_result.value}|raw_bytes:{archive_size_bytes}|extracted_bytes:{extracted_size_bytes}"
+                            mark_version_completed(version_dir, status=status_payload)
+                        except Exception as exc:
+                            success = False
+                            error = f"Extraction exception for {version_id}: {exc}"
+                            break
+                        finally:
+                            if archive_file.exists():
+                                try:
+                                    archive_file.unlink(missing_ok=True)
+                                except OSError:
+                                    pass
+
+                # 2. S2 References (only if extraction didn't fail)
+                if success:
+                    refs_exist = False if not resume else isinstance(_read_json(paper_dir / "references.json"), list)
+                    if not refs_exist:
+                        try:
+                            t_s2_start = time.perf_counter()
+                            if profiler:
+                                with profiler.time_phase("s2_references"):
+                                    get_references(
+                                        arxiv_id,
+                                        output_dir=output_dir,
+                                        api_key=s2_api_key,
+                                        session=session,
+                                        max_retries=10,
+                                        use_jitter=True,
+                                    )
+                            else:
+                                get_references(
+                                    arxiv_id,
+                                    output_dir=output_dir,
+                                    api_key=s2_api_key,
+                                    session=session,
+                                    max_retries=10,
+                                    use_jitter=True,
+                                )
+                            paper_phases["s2_references"] += (time.perf_counter() - t_s2_start)
+                        except Exception as exc:
+                            success = False
+                            error = f"Semantic Scholar references: {exc}"
+
+                # 3. Finalize paper status & stats
+                paper_duration = time.perf_counter() - job.start_time
+                raw_bytes = 0
+                ext_bytes = 0
+                status_str = "SUCCESS" if (success and not error) else "FAILED"
+
+                for v_dir in paper_dir.glob("v*"):
+                    st_file = v_dir / ".complete"
+                    if st_file.is_file():
+                        txt = st_file.read_text(encoding="utf-8").strip()
+                        if "PDF_ONLY" in txt and status_str != "FAILED":
+                            status_str = "PDF_ONLY"
+                        for part in txt.split("|"):
+                            if part.startswith("raw_bytes:"):
+                                try:
+                                    raw_bytes += int(part.split(":")[1])
+                                except ValueError:
+                                    pass
+                            elif part.startswith("extracted_bytes:"):
+                                try:
+                                    ext_bytes += int(part.split(":")[1])
+                                except ValueError:
+                                    pass
+                    if ext_bytes == 0 and status_str != "PDF_ONLY" and v_dir.is_dir():
+                        ext_bytes = sum(
+                            f.stat().st_size
+                            for f in v_dir.iterdir()
+                            if f.is_file() and f.suffix.lower() in {".tex", ".bib"}
+                        )
+
+                with state_lock:
+                    processed_count[0] += 1
+                    curr_idx = processed_count[0]
+                    if success and not error:
+                        mark_completed_atomic(checkpoint_file, arxiv_id)
+                        completed_ids.add(arxiv_id)
+                        success_count[0] += 1
+                    else:
+                        failed_papers[arxiv_id] = error or "Step failure"
+
+                if profiler:
+                    with profiler_lock:
+                        profiler.record_paper(
+                            arxiv_id,
+                            paper_duration,
+                            raw_bytes,
+                            ext_bytes,
+                            status_str,
+                            phase_times=paper_phases,
+                            error=error,
+                        )
+
+                current_ram = 0.0
+                if psutil:
+                    try:
+                        current_ram = psutil.Process().memory_info().rss / (1024 * 1024)
+                    except Exception:
+                        pass
+
+                err_suffix = f" -> Reason: {error}" if error else ""
+                with print_lock:
+                    print(
+                        f"[{curr_idx}/{len(pending_ids)}] Paper {arxiv_id} | "
+                        f"Time: {paper_duration:.2f}s | "
+                        f"RAM: {current_ram:.1f} MB | "
+                        f"Status: {status_str}{err_suffix}",
+                        flush=True,
+                    )
+
+                extract_s2_queue.task_done()
+        except Exception as exc:
+            logger.exception("S2Worker-%d fatal error: %s", worker_id, exc)
+        finally:
+            if session:
+                session.close()
+
+    # ── Launch Threads ────────────────────────────────────────────────────────
+    dl_threads = []
+    s2_threads = []
+
+    producer_thread = threading.Thread(target=discovery_producer, name="DiscoveryProducer")
+    producer_thread.start()
+
+    for i in range(dl_workers_cnt):
+        t = threading.Thread(target=download_worker_loop, args=(i + 1,), name=f"DownloadWorker-{i+1}")
+        t.start()
+        dl_threads.append(t)
+
+    for i in range(s2_workers_cnt):
+        t = threading.Thread(target=extract_s2_worker_loop, args=(i + 1,), name=f"S2Worker-{i+1}")
+        t.start()
+        s2_threads.append(t)
+
+    try:
+        producer_thread.join()
+        for t in dl_threads:
+            t.join()
+
+        # Send sentinels to Stage 3 workers
+        for _ in range(s2_workers_cnt):
+            extract_s2_queue.put(None)
+
+        for t in s2_threads:
+            t.join()
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        if profiler:
+            profiler.stop()
+            profiler.print_summary_table()
+            report_path = profile_output or (output_dir / "profile_stats.json")
+            profiler.export_json(report_path)
+            logger.info("Saved benchmark profile report to: %s", report_path)
+
+    elapsed = time.perf_counter() - start_time
+    summary = {
+        "total_targets": len(arxiv_ids),
+        "skipped": skipped_count,
+        "succeeded": success_count[0],
+        "failed": len(failed_papers),
+        "failed_papers": failed_papers,
+        "elapsed_seconds": round(elapsed, 2),
+    }
+
+    logger.info("=" * 60)
+    logger.info("PARALLEL CRAWL SUMMARY REPORT")
+    logger.info("Total targets:     %d", summary["total_targets"])
+    logger.info("Skipped (resume):  %d", summary["skipped"])
+    logger.info("Succeeded:         %d", summary["succeeded"])
+    logger.info("Failed:            %d", summary["failed"])
+    logger.info("Elapsed time:      %.2f seconds", summary["elapsed_seconds"])
+    logger.info("=" * 60)
+
+    return summary
+
+
+def run_pipeline(
+    arxiv_ids: Sequence[str],
+    output_dir: Path,
+    resume: bool = True,
+    checkpoint_file: Optional[Path] = None,
+    batch_size: int = 100,
+    s2_api_key: Optional[str] = None,
+    profile: bool = False,
+    profile_output: Optional[Path] = None,
+    n_workers: int = 1,
+    download_workers: Optional[int] = None,
+    s2_workers: Optional[int] = None,
+    baseline: bool = False,
+) -> dict[str, Any]:
+    """Execute the pipeline over target arXiv IDs, routing to sequential or parallel engine."""
+    effective_workers = 1 if baseline else (download_workers or n_workers)
+    if effective_workers > 1:
+        return run_parallel_pipeline(
+            arxiv_ids=arxiv_ids,
+            output_dir=output_dir,
+            resume=resume,
+            checkpoint_file=checkpoint_file,
+            batch_size=batch_size,
+            s2_api_key=s2_api_key,
+            profile=profile,
+            profile_output=profile_output,
+            n_workers=n_workers,
+            download_workers=download_workers,
+            s2_workers=s2_workers,
+        )
+    else:
+        return run_sequential_pipeline(
+            arxiv_ids=arxiv_ids,
+            output_dir=output_dir,
+            resume=resume,
+            checkpoint_file=checkpoint_file,
+            batch_size=batch_size,
+            s2_api_key=s2_api_key,
+            profile=profile,
+            profile_output=profile_output,
+            baseline=baseline,
+        )
+
+
 def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """Parse CLI arguments for the crawler runner."""
     parser = argparse.ArgumentParser(
@@ -605,18 +1163,23 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--month", type=str, default=None, help="4-digit month code (e.g. '2505')")
-    parser.add_argument("--start", type=int, required=True, help="Starting sequence ID (e.g. 10666)")
-    parser.add_argument("--end", type=int, required=True, help="Ending sequence ID (e.g. 15665)")
+    parser.add_argument("--start", type=str, required=True, help="Starting sequence ID or full arXiv ID (e.g. 10666 or 2506.05788)")
+    parser.add_argument("--end", type=str, required=True, help="Ending sequence ID or full arXiv ID (e.g. 15665 or 2506.05837)")
     parser.add_argument("--end-month", type=str, default=None, help="End month for cross-month range (e.g. '2504')")
     parser.add_argument("--end-month-start", type=int, default=1, help="Starting sequence ID of the end month (default: 1)")
     parser.add_argument("--start-month-max", type=int, default=None, help="Verified max ID of start month for cross-month ranges")
-    parser.add_argument("--output", type=Path, default=Path("./data"), help="Output directory")
+    parser.add_argument("--output", "--output-dir", dest="output", type=Path, default=Path("./data"), help="Output directory")
     parser.add_argument("--batch-size", type=int, default=100, help="Batch size for discovery API queries")
     parser.add_argument("--s2-api-key", type=str, default=None, help="Optional Semantic Scholar API Key")
     parser.add_argument("--no-resume", action="store_true", help="Disable checkpoint resumption")
     parser.add_argument("--profile", action="store_true", help="Monitor RAM consumption periodically via psutil for Colab benchmark")
-    parser.add_argument("--profile-output", type=Path, default=None, help="Optional output JSON path for benchmark profile report")
+    parser.add_argument("--profile-output", "--stats-file", dest="profile_output", type=Path, default=None, help="Optional output JSON path for benchmark profile report")
     parser.add_argument("--log-file", type=Path, default=None, help="Optional log file path")
+    parser.add_argument("--n-workers", type=int, default=1, help="Number of download worker threads (default: 1 for sequential)")
+    parser.add_argument("--download-workers", type=int, default=None, help="Explicit number of download workers (overrides --n-workers)")
+    parser.add_argument("--s2-workers", type=int, default=None, help="Explicit number of S2 reference workers (default: min(n_workers, 4))")
+    parser.add_argument("--parallel", action="store_true", help="Enable parallel mode (equivalent to --n-workers 3 if not set)")
+    parser.add_argument("--baseline", action="store_true", help="Force baseline sequential mode with original Milestone 1 parameters (5 S2 retries, no range resume, 30s timeout)")
     return parser.parse_args(argv)
 
 
@@ -632,24 +1195,51 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         )
 
+    if args.baseline:
+        args.n_workers = 1
+        args.parallel = False
+
+    if args.parallel and args.n_workers <= 1:
+        args.n_workers = 3
+
+    if args.profile_output is not None:
+        args.profile = True
+
+    start_str = str(args.start).strip()
+    end_str = str(args.end).strip()
+    month = args.month
+
     try:
+        if "." in start_str:
+            month_part, seq_part = start_str.split(".", 1)
+            if not month:
+                month = month_part
+            start_seq = int(seq_part)
+        else:
+            start_seq = int(start_str)
+
+        if "." in end_str:
+            end_seq = int(end_str.split(".", 1)[1])
+        else:
+            end_seq = int(end_str)
+
         if args.end_month:
-            if not args.month:
+            if not month:
                 logger.error("--month is required when using --end-month")
                 return 1
             ids_to_crawl = generate_cross_month_ids(
-                start_month=args.month,
-                start_id=args.start,
+                start_month=month,
+                start_id=start_seq,
                 end_month=args.end_month,
-                end_id=args.end,
+                end_id=end_seq,
                 start_month_max=args.start_month_max,
                 end_month_start=args.end_month_start,
             )
         else:
-            if not args.month:
+            if not month:
                 logger.error("--month is required for single-month range")
                 return 1
-            ids_to_crawl = generate_arxiv_ids(args.month, args.start, args.end)
+            ids_to_crawl = generate_arxiv_ids(month, start_seq, end_seq)
     except ValueError as err:
         logger.error("Invalid range configuration: %s", err)
         return 1
@@ -662,6 +1252,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         s2_api_key=args.s2_api_key,
         profile=args.profile,
         profile_output=args.profile_output,
+        n_workers=args.n_workers,
+        download_workers=args.download_workers,
+        s2_workers=args.s2_workers,
+        baseline=args.baseline,
     )
 
     return 0
