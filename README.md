@@ -49,42 +49,21 @@ pip install -r src/requirements.txt
 
 ## 4. Hướng dẫn sử dụng
 
-### 4.1. Lệnh chạy nhanh (Khuyến nghị)
-
-Chạy thu thập dữ liệu với chế độ song song bằng cờ `--parallel`:
+Chạy crawler thu thập dữ liệu bằng lệnh:
 
 ```bash
-# Chạy theo dải số thứ tự trong tháng
 python src/crawler.py --month 2505 --start 10666 --end 15665 --output ./data --parallel
-
-# Hoặc chạy trực tiếp với mã arXiv đầy đủ
-python src/crawler.py --start 2506.05788 --end 2506.10787 --output ./data --parallel
 ```
 
-### 4.2. Chế độ tuần tự đối chứng (Baseline)
-
-Dùng cho việc đo lường hiệu năng đối chứng giữa bản tuần tự gốc và bản song song:
-
-```bash
-python src/crawler.py --month 2505 --start 10666 --end 10765 --output ./data_baseline --baseline --profile --stats-file ./baseline_stats.json
-```
-
-### 4.3. Dải bài xuyên tháng
-
-Khi dải ID kéo dài qua hai tháng liên tiếp, sử dụng `--end-month` kết hợp `--start-month-max` để giới hạn số bài thực tế của tháng bắt đầu:
-
-```bash
-python src/crawler.py --month 2503 --start 21914 --end-month 2504 --end 2522 --start-month-max 26500 --output ./data --parallel
-```
-
-### 4.4. Bảng tham số dòng lệnh
+### Bảng tham số dòng lệnh
 
 | Tham số | Giá trị mặc định | Mô tả |
 | :--- | :--- | :--- |
 | `--start` | Bắt buộc | Số thứ tự bắt đầu (ví dụ: `10666`) hoặc mã arXiv đầy đủ (`2506.05788`) |
 | `--end` | Bắt buộc | Số thứ tự kết thúc (ví dụ: `15665`) hoặc mã arXiv đầy đủ (`2506.10787`) |
 | `--month` | `None` | Mã tháng 4 chữ số (ví dụ: `2505`). Tự động trích xuất nếu `--start` là mã đầy đủ |
-| `--end-month` | `None` | Mã tháng kết thúc cho dải bài xuyên tháng (ví dụ: `2504`) |
+| `--end-month` | `None` | Mã tháng kết thúc khi chạy dải bài xuyên tháng (ví dụ: `2504`) |
+| `--start-month-max` | `None` | Giới hạn số bài thực tế của tháng bắt đầu cho dải xuyên tháng |
 | `--output`, `--output-dir` | `./data` | Thư mục lưu trữ dữ liệu đầu ra |
 | `--parallel` | `False` | Bật chế độ chạy đường ống song song 3 giai đoạn |
 | `--baseline` | `False` | Bật chế độ tuần tự gốc để đo benchmark đối chứng |
