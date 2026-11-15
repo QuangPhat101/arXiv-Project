@@ -85,6 +85,48 @@ class ParseVersionTest(unittest.TestCase):
             self.assertEqual(parent[by_content["Part"][0]], by_content["Intro"][0])
             self.assertIn("This long sentence comes from the chapter subfile itself.", by_content)
 
+    def write_main(self, root, body):
+        (root / "main.tex").write_text("\\documentclass{article}\n\\begin{document}\n" + body + "\n\\end{document}\n")
+
+    def test_nested_list_items_and_references_section_skipped(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_main(root, r"""\section{Method}
+\begin{enumerate}\item[(a)] Outer item sentence is here.
+\begin{itemize}\item Inner item sentence is here.\end{itemize}
+\end{enumerate}
+Line one ends here\\[2pt] and the same sentence continues.
+\section*{References}
+Alice Smith wrote a paper about this.
+\subsection{More refs}
+Bob Jones wrote another paper too.
+\appendix
+\section{Proofs}
+The appendix sentence stays here.""")
+            elements, hierarchy = parse_version(root, "2503.00001", 1)
+            by_content = {e[3]: e for e in elements}
+            parent = {eid: p for _, _, eid, p in hierarchy}
+            kinds = [e[2] for e in elements]
+
+            self.assertEqual(kinds.count("itemize"), 2)
+            self.assertEqual(kinds.count("item"), 2)
+            kind_of = {e[0]: e[2] for e in elements}
+            inner = next(e[0] for e in elements if e[2] == "sentence" and e[3] == "Inner item sentence is here.")
+            self.assertEqual(kind_of[parent[inner]], "item")
+            self.assertEqual(kind_of[parent[parent[inner]]], "itemize")
+            self.assertEqual(kind_of[parent[parent[parent[inner]]]], "item")  # nested inside the outer item
+            self.assertNotIn("equation", kinds)  # \\[2pt] is a line break, not display math
+            self.assertIn("Line one ends here and the same sentence continues.", by_content)
+            self.assertFalse(any("Alice" in c or "Bob" in c for c in by_content))
+            self.assertIn("The appendix sentence stays here.", by_content)
+
+    def test_cite_map_rewrites_keys_before_ids(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_main(root, r"Prior work exists \cite{new, other}.")
+            elements, _ = parse_version(root, "2503.00001", 2, cite_map={"new": "old"})
+            self.assertIn(r"Prior work exists \cite{old,other}.", [e[3] for e in elements])
+
     def test_pdf_only_version_is_empty(self):
         with TemporaryDirectory() as tmp:
             self.assertEqual(parse_version(Path(tmp), "2503.00001", 1), ([], []))
