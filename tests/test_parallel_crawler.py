@@ -16,6 +16,13 @@ from src.utils import RateLimiter
 
 
 class TestParallelCrawler(unittest.TestCase):
+    def setUp(self):
+        # These tests mock individual discovery below. Do not let the producer's
+        # batch fast path issue real HTTP when arxiv is installed in the venv.
+        batch = patch("src.crawler.discover_papers_batch", return_value={})
+        batch.start()
+        self.addCleanup(batch.stop)
+
     def test_cli_parsing_arxiv_id_format(self):
         """Verify full arXiv IDs (e.g. 2506.05788) are parsed properly without requiring --month."""
         argv = [
