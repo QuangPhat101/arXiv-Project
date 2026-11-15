@@ -1,5 +1,7 @@
 # arXiv Data Science Project: Milestone 1 (Data Crawling)
 
+> Bản tích hợp M2: xem [task.md](task.md) để nhận việc, tạo nhánh sửa và chạy kiểm thử nghiệm thu.
+
 Dự án thu thập dữ liệu bài báo khoa học từ kho lưu trữ mở arXiv và trích xuất trích dẫn từ Semantic Scholar, thuộc môn học Nhập môn Khoa học Dữ liệu tại Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM (HCMUS).
 
 ## 1. Giới thiệu tổng quan
