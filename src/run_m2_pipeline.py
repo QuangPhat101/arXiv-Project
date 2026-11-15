@@ -42,6 +42,9 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
     p_dir = Path(paper_dir_str)
     aid = p_dir.name
 
+    errors: List[Dict[str, Any]] = []
+    coverage: List[Dict[str, Any]] = []
+
     paper_meta = None
     meta_path = p_dir / "metadata.json"
     if meta_path.exists():
@@ -56,8 +59,13 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
                 "revised_dates": list(meta.get("revised_dates", [])),
                 "venue": meta.get("venue") or None,
             }
-        except Exception:
-            pass
+        except Exception as e:
+            errors.append({
+                "arxiv_id": str(aid),
+                "version": 0,
+                "stage": "metadata",
+                "message": str(e),
+            })
 
     paper_refs = []
     ref_path = p_dir / "references.json"
@@ -76,8 +84,13 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
                         "ref_submission_date": str(r.get("ref_submission_date", "")) or None,
                         "ref_s2_id": str(r.get("ref_s2_id", "")) or None,
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            errors.append({
+                "arxiv_id": str(aid),
+                "version": 0,
+                "stage": "references",
+                "message": str(e),
+            })
 
     elements_list = []
     hierarchy_list = []
@@ -86,35 +99,91 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
     v_dirs = sorted([v for v in p_dir.iterdir() if v.is_dir() and v.name.startswith("v")],
                     key=lambda x: int(x.name[1:]) if x.name[1:].isdigit() else 0)
 
+    if not v_dirs:
+        coverage.append({
+            "arxiv_id": str(aid),
+            "version": 1,
+            "status": "empty",
+        })
+
+    # 1. Collect BibTeX entries across all versions
     for v_dir in v_dirs:
         v_num = int(v_dir.name[1:]) if v_dir.name[1:].isdigit() else 1
-        try:
-            el_list, hi_list = parse_version(v_dir, aid, v_num)
-            elements_list.extend(el_list)
-            hierarchy_list.extend(hi_list)
-        except Exception:
-            pass
-
         try:
             v_bib = parse_version_bibtex(v_dir, aid)
             if v_bib:
                 entries_by_version[v_num] = v_bib
-        except Exception:
-            pass
+        except Exception as e:
+            errors.append({
+                "arxiv_id": str(aid),
+                "version": v_num,
+                "stage": "parse_version_bibtex",
+                "message": str(e),
+            })
 
+    # 2. Build cross-version citation map and union fields of duplicate entries
     bibtex_list = []
+    key_map = {}
     if entries_by_version:
         key_map = build_cross_version_citation_map(entries_by_version)
-        seen_keys = set()
-        for v_num, entries in entries_by_version.items():
+        merged_entries: Dict[str, Dict[str, Any]] = {}
+        for v_num, entries in sorted(entries_by_version.items()):
             for e in entries:
                 orig_key = e["citation_key"]
                 canon_key = key_map.get((v_num, orig_key), orig_key)
-                if canon_key not in seen_keys:
-                    seen_keys.add(canon_key)
+                if canon_key not in merged_entries:
                     e_copy = dict(e)
                     e_copy["citation_key"] = canon_key
-                    bibtex_list.append(e_copy)
+                    merged_entries[canon_key] = e_copy
+                else:
+                    target = merged_entries[canon_key]
+                    for k, val in e.items():
+                        if k == "citation_key":
+                            continue
+                        if val is not None and (target.get(k) is None or target.get(k) == ""):
+                            target[k] = val
+        bibtex_list = list(merged_entries.values())
+
+    # 3. Parse LaTeX versions passing version-specific cite_map
+    for v_dir in v_dirs:
+        v_num = int(v_dir.name[1:]) if v_dir.name[1:].isdigit() else 1
+        v_cite_map = {
+            orig_k: canon_k
+            for (v, orig_k), canon_k in key_map.items()
+            if v == v_num
+        }
+
+        tex_files = list(v_dir.glob("*.tex"))
+        if not tex_files:
+            coverage.append({
+                "arxiv_id": str(aid),
+                "version": v_num,
+                "status": "empty",
+            })
+            continue
+
+        try:
+            el_list, hi_list = parse_version(v_dir, aid, v_num, cite_map=v_cite_map)
+            elements_list.extend(el_list)
+            hierarchy_list.extend(hi_list)
+            coverage.append({
+                "arxiv_id": str(aid),
+                "version": v_num,
+                "status": "parsed",
+                "elements_count": len(el_list),
+            })
+        except Exception as e:
+            errors.append({
+                "arxiv_id": str(aid),
+                "version": v_num,
+                "stage": "parse_version",
+                "message": str(e),
+            })
+            coverage.append({
+                "arxiv_id": str(aid),
+                "version": v_num,
+                "status": "error",
+            })
 
     return {
         "paper_meta": paper_meta,
@@ -122,6 +191,8 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
         "elements": elements_list,
         "hierarchy": hierarchy_list,
         "bibtex": bibtex_list,
+        "errors": errors,
+        "coverage": coverage,
     }
 
 
