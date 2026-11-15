@@ -1,0 +1,404 @@
+﻿paper_arxiv_id,paper_title,citation_key,citation_title,citation_authors,citation_year,groundtruth_arxiv_id
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,lin2018st,ST-GAN: Spatial transformer generative adversarial networks for image compositing,"['Chen-Hsuan Lin' 'Ersin Yumer' 'Oliver Wang' 'Eli Shechtman'
+ 'Simon Lucey']",2018.0,1803.01837
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,li2019putting,Putting humans in a scene: Learning affordance in 3D indoor environments,"['Xueting Li' 'Sifei Liu' 'Kihwan Kim' 'Xiaolong Wang' 'Ming-Hsuan Yang'
+ 'Jan Kautz']",2019.0,1903.05690
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,zhan2019spatial,Spatial fusion GAN for image synthesis,['Fangneng Zhan' 'Hongyuan Zhu' 'Shijian Lu'],2019.0,1812.05840
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,LiNiu2022FastOP,Fast Object Placement Assessment,['Li Niu' 'Qingyang Liu' 'Zhenchen Liu' 'Jiangtong Li'],2022.0,2205.14280
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,SiyuanZhou2022LearningOP,Learning Object Placement via Dual-path Graph Completion,['Siyuan Zhou' 'Liu Liu' 'Li Niu' 'Liqing Zhang'],2022.0,2207.11464
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,zhou2022sac,SAC-GAN: Structure-Aware Image Composition,"['Hang Zhou' 'Rui Ma' 'Ling-Xiao Zhang' 'Lin Gao' 'Ali Mahdavi-Amiri'
+ 'Hao Zhang']",2022.0,2112.06596
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,zhu2023topnet,TopNet: Transformer-based Object Placement Network for Image Compositing,"['Sijie Zhu' 'Zhe Lin' 'Scott Cohen' 'Jason Kuen' 'Zhifei Zhang'
+ 'Chen Chen']",2023.0,2304.03372
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,tripathi2019learning,Learning to generate synthetic data via compositing,"['Shashank Tripathi' 'Siddhartha Chandra' 'Amit Agrawal' 'Ambrish Tyagi'
+ 'James M Rehg' 'Visesh Chari']",2019.0,1904.05475
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,ghiasi2021simple,Simple copy-paste is a strong data augmentation method for instance segmentation,"['Golnaz Ghiasi' 'Yin Cui' 'Aravind Srinivas' 'Rui Qian' 'Tsung-Yi Lin'
+ 'Ekin D Cubuk' 'Quoc V Le' 'Barret Zoph']",2021.0,2012.07177
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,tsai2017deep,Deep image harmonization,"['Yi-Hsuan Tsai' 'Xiaohui Shen' 'Zhe Lin' 'Kalyan Sunkavalli' 'Xin Lu'
+ 'Ming-Hsuan Yang']",2017.0,1703.00069
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,cong2020dovenet,DoveNet: Deep image harmonization via domain verification,"['Wenyan Cong' 'Jianfu Zhang' 'Li Niu' 'Liu Liu' 'Zhixin Ling'
+ 'Weiyuan Li' 'Liqing Zhang']",2020.0,1911.13239
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,meng2021sdedit,SDEdit: Guided Image Synthesis and Editing with Stochastic Differential Equations,"['Chenlin Meng' 'Yutong He' 'Yang Song' 'Jiaming Song' 'Jiajun Wu'
+ 'Jun-Yan Zhu' 'Stefano Ermon']",2021.0,2108.01073
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,cai2018cascade,Cascade R-CNN: Delving into high quality object detection,['Zhaowei Cai' 'Nuno Vasconcelos'],2018.0,1712.00726
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,girshick2015fast,Fast R-CNN,['Ross Girshick'],2015.0,1504.08083
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,girshick2014rich,Rich feature hierarchies for accurate object detection and semantic segmentation,['Ross Girshick' 'Jeff Donahue' 'Trevor Darrell' 'Jitendra Malik'],2014.0,1311.2524
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,lin2017feature,Feature pyramid networks for object detection,"['Tsung-Yi Lin' ""Piotr Doll\\'ar"" 'Ross Girshick' 'Kaiming He'
+ 'Bharath Hariharan' 'Serge Belongie']",2017.0,1612.03144
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,ren2015faster,Faster R-CNN: Towards real-time object detection with region proposal networks,['Shaoqing Ren' 'Kaiming He' 'Ross Girshick' 'Jian Sun'],2015.0,1506.01497
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,liu2016ssd,SSD: Single shot multibox detector,"['Wei Liu' 'Dragomir Anguelov' 'Dumitru Erhan' 'Christian Szegedy'
+ 'Scott Reed' 'Cheng-Yang Fu' 'Alexander C Berg']",2016.0,1512.02325
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,redmon2016you,"You Only Look Once: Unified, real-time object detection",['Joseph Redmon' 'Santosh Divvala' 'Ross Girshick' 'Ali Farhadi'],2016.0,1506.02640
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,tian2019fcos,FCOS: Fully convolutional one-stage object detection,['Zhi Tian' 'Chunhua Shen' 'Hao Chen' 'Tong He'],2019.0,1904.01355
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,carion2020end,End-to-end object detection with transformers,"['Nicolas Carion' 'Francisco Massa' 'Gabriel Synnaeve' 'Nicolas Usunier'
+ 'Alexander Kirillov' 'Sergey Zagoruyko']",2020.0,2005.12872
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,kamath2021mdetr,MDETR-Modulated detection for end-to-end multi-modal understanding,"['Aishwarya Kamath' 'Mannat Singh' 'Yann LeCun' 'Gabriel Synnaeve'
+ 'Ishan Misra' 'Nicolas Carion']",2021.0,2104.12763
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,li2022grounded,Grounded language-image pre-training,"['Liunian Harold Li' 'Pengchuan Zhang' 'Haotian Zhang' 'Jianwei Yang'
+ 'Chunyuan Li' 'Yiwu Zhong' 'Lijuan Wang' 'Lu Yuan' 'Lei Zhang'
+ 'Jenq-Neng Hwang']",2022.0,2112.03857
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,wang2022omni,Omni-DETR: Omni-supervised object detection with transformers,"['Pei Wang' 'Zhaowei Cai' 'Hao Yang' 'Gurumurthy Swaminathan'
+ 'Nuno Vasconcelos' 'Bernt Schiele' 'Stefano Soatto']",2022.0,2203.16089
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,zhang2022dino,DINO: DETR with improved denoising anchor boxes for end-to-end object detection,"['Hao Zhang' 'Feng Li' 'Shilong Liu' 'Lei Zhang' 'Hang Su' 'Jun Zhu'
+ 'Lionel M Ni' 'Heung-Yeung Shum']",2023.0,2203.03605
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,bouniot2023proposal,Proposal-contrastive pretraining for object detection from fewer data,"['Quentin Bouniot' 'Romaric Audigier' ""Ang\\'elique Loesch""
+ 'Amaury Habrard']",2023.0,2310.16835
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,cordts2016cityscapes,The Cityscapes dataset for semantic urban scene understanding,"['Marius Cordts' 'Mohamed Omran' 'Sebastian Ramos' 'Timo Rehfeld'
+ 'Markus Enzweiler' 'Rodrigo Benenson' 'Uwe Franke' 'Stefan Roth'
+ 'Bernt Schiele']",2016.0,1604.01685
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,liu2021OPA,OPA: Object Placement Assessment Dataset,"['Liu Liu' 'Zhenchen Liu' 'Bo Zhang' 'Jiangtong Li' 'Li Niu'
+ 'Qingyang Liu' 'Liqing Zhang']",2021.0,2107.01889
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,lin2014microsoft,Microsoft COCO: Common objects in context,"['Tsung-Yi Lin' 'Michael Maire' 'Serge Belongie' 'James Hays'
+ 'Pietro Perona' 'Deva Ramanan' ""Piotr Doll\\'ar"" 'C Lawrence Zitnick']",2014.0,1405.0312
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,vaswani2017attention,Attention is all you need,"['Ashish Vaswani' 'Noam Shazeer' 'Niki Parmar' 'Jakob Uszkoreit'
+ 'Llion Jones' 'Aidan N Gomez' 'ukasz Kaiser' 'Illia Polosukhin']",2017.0,1706.03762
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,rezatofighi2019generalized,Generalized intersection over union: A metric and a loss for bounding box regression,"['Hamid Rezatofighi' 'Nathan Tsoi' 'JunYoung Gwak' 'Amir Sadeghian'
+ 'Ian Reid' 'Silvio Savarese']",2019.0,1902.09630
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,cheng2021per,Per-pixel classification is not all you need for semantic segmentation,['Bowen Cheng' 'Alex Schwing' 'Alexander Kirillov'],2021.0,2107.06278
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,suvorov2022resolution,Resolution-robust large mask inpainting with fourier convolutions,"['Roman Suvorov' 'Elizaveta Logacheva' 'Anton Mashikhin'
+ 'Anastasia Remizova' 'Arsenii Ashukha' 'Aleksei Silvestrov' 'Naejin Kong'
+ 'Harshith Goka' 'Kiwoong Park' 'Victor Lempitsky']",2022.0,2109.07161
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,antoniou2017data,Data augmentation generative adversarial networks,['Antreas Antoniou' 'Amos Storkey' 'Harrison Edwards'],2017.0,1711.04340
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,dwibedi2017cut,"Cut, paste and learn: Surprisingly easy synthesis for instance detection",['Debidatta Dwibedi' 'Ishan Misra' 'Martial Hebert'],2017.0,1708.01642
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,liu2024diffpop,DiffPop: Plausibility-Guided Object Placement Diffusion for Image Composition,['Jiacheng Liu' 'Hang Zhou' 'Shida Wei' 'Rui Ma'],2024.0,2406.07852
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,hold2019deep,Deep sky modeling for single image outdoor lighting estimation,['Yannick Hold-Geoffroy' 'Akshaya Athawale' 'Jean-Fran cois Lalonde'],2019.0,1905.03897
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,wang2022neural,Neural light field estimation for street scenes with differentiable virtual object insertion,['Zian Wang' 'Wenzheng Chen' 'David Acuna' 'Jan Kautz' 'Sanja Fidler'],2022.0,2208.09480
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,ho2020denoising,Denoising diffusion probabilistic models,['Jonathan Ho' 'Ajay Jain' 'Pieter Abbeel'],2020.0,2006.11239
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,lu2023tf,TF-ICON: Diffusion-Based Training-Free Cross-Domain Image Composition,['Shilin Lu' 'Yanzhu Liu' 'Adams Wai-Kin Kong'],2023.0,2307.12493
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,para2023cofs,COFS: COntrollable Furniture Layout Synthesis,['Wamiq Reyaz Para' 'Paul Guerrero' 'Niloy Mitra' 'Peter Wonka'],2023.0,2205.14657
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,wei2023lego,LEGO-Net: Learning regular rearrangements of objects in rooms,"['Qiuhong Anna Wei' 'Sijie Ding' 'Jeong Joon Park' 'Rahul Sajnani'
+ 'Adrien Poulenard' 'Srinath Sridhar' 'Leonidas Guibas']",2023.0,2301.09629
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,zhang2018unreasonable,The unreasonable effectiveness of deep features as a perceptual metric,"['Richard Zhang' 'Phillip Isola' 'Alexei A Efros' 'Eli Shechtman'
+ 'Oliver Wang']",2018.0,1801.03924
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,chen2024anydoor,AnyDoor: Zero-shot object-level image customization,"['Xi Chen' 'Lianghua Huang' 'Yu Liu' 'Yujun Shen' 'Deli Zhao'
+ 'Hengshuang Zhao']",2024.0,2307.09481
+2503.21991,BOOTPLACE: Bootstrapped Object Placement with Detection Transformers,canet2025thinking,Thinking Outside the BBox: Unconstrained Generative Object Compositing,"[""Gemma Canet Tarr\\'es"" 'Zhe Lin' 'Zhifei Zhang' 'Jianming Zhang'
+ 'Yizhi Song' 'Dan Ruta' 'Andrew Gilbert' 'John Collomosse' 'Soo Ye Kim']",2024.0,2409.04559
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,islam2017reproducibility,Reproducibility of benchmarked deep reinforcement learning tasks for continuous control,['Riashat Islam' 'Peter Henderson' 'Maziar Gomrokchi' 'Doina Precup'],2017.0,1708.04133
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,openai2019dota,Dota 2 with Large Scale Deep Reinforcement Learning,"['OpenAI' 'Christopher Berner' 'Greg Brockman' 'Brooke Chan'
+ 'Vicki Cheung' 'Przemysław Dębiakand Christy Dennison' 'David Farhi'
+ 'Quirin Fischer' 'Shariq Hashme' 'Chris Hesse' 'Rafal Józefowicz'
+ 'Scott Gray' 'Catherine Olsson' 'Jakub Pachocki' 'Michael Petrov'
+ 'Henrique Pondé de Oliveira Pinto andJonathan Raiman' 'Tim Salimans'
+ 'Jeremy Schlatter' 'Jonas Schneider' 'Szymon Sidor' 'Ilya Sutskever'
+ 'Jie Tang' 'Filip Wolski' 'Susan Zhang']",2019.0,1912.06680
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,li2022metadrive,Metadrive: Composing diverse driving scenarios for generalizable reinforcement learning,"['Quanyi Li' 'Zhenghao Peng' 'Lan Feng' 'Qihang Zhang' 'Zhenghai Xue'
+ 'Bolei Zhou']",2022.0,2109.12674
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,liu2021finrl,FinRL: Deep reinforcement learning framework to automate trading in quantitative finance,['Xiao-Yang Liu' 'Hongyang Yang' 'Jiechao Gao' 'Christina Dan Wang'],2021.0,2111.09395
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,mnih2016asynchronous,Asynchronous methods for deep reinforcement learning,"['Volodymyr Mnih' 'Adria Puigdomenech Badia' 'Mehdi Mirza' 'Alex Graves'
+ 'Timothy Lillicrap' 'Tim Harley' 'David Silver' 'Koray Kavukcuoglu']",2016.0,1602.01783
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,schulman2017proximal,Proximal policy optimization algorithms,"['John Schulman' 'Filip Wolski' 'Prafulla Dhariwal' 'Alec Radford'
+ 'Oleg Klimov']",2017.0,1707.06347
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,schulman2015trust,Trust region policy optimization,"['John Schulman' 'Sergey Levine' 'Pieter Abbeel' 'Michael Jordan'
+ 'Philipp Moritz']",2015.0,1502.05477
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,castro18dopamine,Dopamine: A Research Framework for Deep Reinforcement Learning,"['Pablo Samuel Castro' 'Subhodeep Moitra' 'Carles Gelada' 'Saurabh Kumar'
+ 'Marc G. Bellemare']",2018.0,1812.06110
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,bellemare13arcade,The Arcade Learning Environment: An Evaluation Platform for General Agents,['M. G. Bellemare' 'Y. Naddaf' 'J. Veness' 'M. Bowling'],2013.0,1207.4708
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,hessel2018rainbow,Rainbow: Combining improvements in deep reinforcement learning,"['Matteo Hessel' 'Joseph Modayil' 'Hado Van Hasselt' 'Tom Schaul'
+ 'Georg Ostrovski' 'Will Dabney' 'Dan Horgan' 'Bilal Piot' 'Mohammad Azar'
+ 'David Silver']",2018.0,1710.02298
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,lillicrap2015continuous,Continuous control with deep reinforcement learning,"['Timothy P Lillicrap' 'Jonathan J Hunt' 'Alexander Pritzel'
+ 'Nicolas Heess' 'Tom Erez' 'Yuval Tassa' 'David Silver' 'Daan Wierstra']",2016.0,1509.02971
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,tianshou,Tianshou: A Highly Modularized Deep Reinforcement Learning Library,"['Jiayi Weng' 'Huayu Chen' 'Dong Yan' 'Kaichao You' 'Alexis Duburcq'
+ 'Minghao Zhang' 'Yi Su' 'Hang Su' 'Jun Zhu']",2022.0,2107.14171
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,henderson2018deep,Deep reinforcement learning that matters,"['Peter Henderson' 'Riashat Islam' 'Philip Bachman' 'Joelle Pineau'
+ 'Doina Precup' 'David Meger']",2018.0,1709.06560
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,agarwal2021deep,Deep Reinforcement Learning at the Edge of the Statistical Precipice,"['Rishabh Agarwal' 'Max Schwarzer' 'Pablo Samuel Castro' 'Aaron Courville'
+ 'Marc G Bellemare']",2021.0,2108.13264
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,bouthillier2021accounting,Accounting for variance in machine learning benchmarks,"['Xavier Bouthillier' 'Pierre Delaunay' 'Mirko Bronzi' 'Assya Trofimov'
+ 'Brennan Nichyporuk' 'Justin Szeto' 'Nazanin Mohammadi Sepahvand'
+ 'Edward Raff' 'Kanika Madan' 'Vikram Voleti']",2021.0,2103.03098
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,duan2016benchmarking,Benchmarking deep reinforcement learning for continuous control,['Yan Duan' 'Xi Chen' 'Rein Houthooft' 'John Schulman' 'Pieter Abbeel'],2016.0,1509.02971
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,hoffman2020acme,Acme: A Research Framework for Distributed Reinforcement Learning,"['Matthew W. Hoffman' 'Bobak Shahriari' 'John Aslanides'
+ 'Gabriel Barth-Maron' 'Nikola Momchev' 'Danila Sinopalnikov'
+ ""Piotr Sta\\'nczyk"" 'Sabela Ramos' 'Anton Raichuk' 'Damien Vincent'
+ ""L\\'eonard Hussenot"" 'Robert Dadashi' 'Gabriel Dulac-Arnold'
+ 'Manu Orsini' 'Alexis Jacq' 'Johan Ferret' 'Nino Vieillard'
+ 'Seyed Kamyar Seyed Ghasemipour' 'Sertan Girgin' 'Olivier Pietquin'
+ 'Feryal Behbahani' 'Tamara Norman' 'Abbas Abdolmaleki' 'Albin Cassirer'
+ 'Fan Yang' 'Kate Baumli' 'Sarah Henderson' 'Abe Friesen' 'Ruba Haroun'
+ 'Alex Novikov' ""Sergio G\\'omez Colmenarejo"" 'Serkan Cabi'
+ 'Caglar Gulcehre' 'Tom Le Paine' 'Srivatsan Srinivasan' 'Andrew Cowie'
+ 'Ziyu Wang' 'Bilal Piot' 'Nando de Freitas']",2020.0,1812.06110
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,deng2022fuzzing,Fuzzing deep-learning libraries via automated relational api inference,['Yinlin Deng' 'Chenyuan Yang' 'Anjiang Wei' 'Lingming Zhang'],2022.0,2207.05531
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,wei2022free,Free lunch for testing: Fuzzing deep-learning libraries from open source,['Anjiang Wei' 'Yinlin Deng' 'Chenyuan Yang' 'Lingming Zhang'],2022.0,2201.06589
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,van2016deep,Deep reinforcement learning with double q-learning,['Hado Van Hasselt' 'Arthur Guez' 'David Silver'],2016.0,1509.06461
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,wang2016dueling,Dueling network architectures for deep reinforcement learning,"['Ziyu Wang' 'Tom Schaul' 'Matteo Hessel' 'Hado Hasselt' 'Marc Lanctot'
+ 'Nando Freitas']",2016.0,1511.06581
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,machado2018revisiting,Revisiting the arcade learning environment: Evaluation protocols and open problems for general agents,"['Marlos C Machado' 'Marc G Bellemare' 'Erik Talvitie' 'Joel Veness'
+ 'Matthew Hausknecht' 'Michael Bowling']",2018.0,1709.06009
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,kiran2021deep,Deep reinforcement learning for autonomous driving: A survey,"['B Ravi Kiran' 'Ibrahim Sobh' 'Victor Talpaert' 'Patrick Mannion'
+ 'Ahmad A Al Sallab' 'Senthil Yogamani' ""Patrick P\\'erez""]",2021.0,2002.00444
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,abdulazeez2024review,A Review on Deep Reinforcement Learning for Autonomous Driving,['Adnan Mohsin Abdulazeez'],2024.0,2302.06370
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,nair2015massively,Massively parallel methods for deep reinforcement learning,"['Arun Nair' 'Praveen Srinivasan' 'Sam Blackwell' 'Cagdas Alcicek'
+ 'Rory Fearon' 'Alessandro De Maria' 'Vedavyas Panneershelvam'
+ 'Mustafa Suleyman' 'Charles Beattie' 'Stig Petersen']",2015.0,1602.01783
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,gym,OpenAI Gym,"['Greg Brockman' 'Vicki Cheung' 'Ludwig Pettersson' 'Jonas Schneider'
+ 'John Schulman' 'Jie Tang' 'Wojciech Zaremba']",2016.0,1606.01540
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,herbold2023differential,Differential testing for machine learning: an analysis for classification algorithms beyond deep learning,['Steffen Herbold' 'Steffen Tunkel'],2023.0,2207.11976
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,louloudakis2023deltann,DeltaNN: Assessing the impact of computational environment parameters on the performance of image recognition models,"['Nikolaos Louloudakis' 'Perry Gibson' ""Jos\\'e Cano"" 'Ajitha Rajan']",2023.0,2306.06208
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,guo2018dlfuzz,Dlfuzz: Differential fuzzing testing of deep learning systems,['Jianmin Guo' 'Yu Jiang' 'Yue Zhao' 'Quan Chen' 'Jiaguang Sun'],2018.0,1808.09413
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,pei2017deepxplore,Deepxplore: Automated whitebox testing of deep learning systems,['Kexin Pei' 'Yinzhi Cao' 'Junfeng Yang' 'Suman Jana'],2017.0,1705.06640
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,fuzz4all,Fuzz4All: Universal Fuzzing with Large Language Models,"['Chunqiu Steven Xia' 'Matteo Paltenghi' 'Jia Le Tian' 'Michael Pradel'
+ 'Lingming Zhang']",2024.0,2308.04748
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,titanfuzz,Large Language Models Are Zero-Shot Fuzzers: Fuzzing Deep-Learning Libraries via Large Language Models,"['Yinlin Deng' 'Chunqiu Steven Xia' 'Haoran Peng' 'Chenyuan Yang'
+ 'Lingming Zhang']",2023.0,2212.14834
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,yang2023white,White-box compiler fuzzing empowered by large language models,"['Chenyuan Yang' 'Yinlin Deng' 'Runyu Lu' 'Jiayi Yao' 'Jiawei Liu'
+ 'Reyhaneh Jabbarvand' 'Lingming Zhang']",2023.0,2310.15991
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,yang2023kernelgpt,Kernelgpt: Enhanced kernel fuzzing via large language models,['Chenyuan Yang' 'Zijie Zhao' 'Lingming Zhang'],2023.0,2401.00563
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,riccio2020model,Model-based exploration of the frontier of behaviours for deep learning system testing,['Vincenzo Riccio' 'Paolo Tonella'],2020.0,2007.02787
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,aitchison2023atari,Atari-5: Distilling the arcade learning environment down to five games,['Matthew Aitchison' 'Penny Sweetser' 'Marcus Hutter'],2023.0,2210.02019
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,chen2023toward,Toward understanding deep learning framework bugs,['Junjie Chen' 'Yihua Liang' 'Qingchao Shen' 'Jiajun Jiang' 'Shuochuan Li'],2023.0,2203.04026
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,ahmed2023characterizing,Characterizing Bugs in Python and R Data Analytics Programs,"['Shibbir Ahmed' 'Mohammad Wardat' 'Hamid Bagheri' 'Breno Dantas Cruz'
+ 'Hridesh Rajan']",2023.0,2306.08632
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,christodoulou2019soft,Soft actor-critic for discrete action settings,['Petros Christodoulou'],2019.0,1910.07207
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,nouwou2023comparison,A comparison of reinforcement learning frameworks for software testing tasks,['Paulina Stevia Nouwou Mindom' 'Amin Nikanjam' 'Foutse Khomh'],2023.0,2208.12136
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,wolk2022beyond,Beyond cage: Investigating generalization of learned autonomous network defense policies,"['Melody Wolk' 'Andy Applebaum' 'Camron Dennler' 'Patrick Dwyer'
+ 'Marina Moskowitz' 'Harold Nguyen' 'Nicole Nichols' 'Nicole Park'
+ 'Paul Rachwalski' 'Frank Rau']",2022.0,2211.15557
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,beukman2024dynamics,Dynamics generalisation in reinforcement learning via adaptive context-aware policies,"['Michael Beukman' 'Devon Jarvis' 'Richard Klein' 'Steven James'
+ 'Benjamin Rosman']",2024.0,2310.16686
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,chiappa2024latent,Latent exploration for reinforcement learning,"['Alberto Silvio Chiappa' 'Alessandro Marin Vargas' 'Ann Huang'
+ 'Alexander Mathis']",2024.0,2305.20065
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,gerstgrasser2024selectively,Selectively sharing experiences improves multi-agent reinforcement learning,['Matthias Gerstgrasser' 'Tom Danino' 'Sarah Keren'],2024.0,2311.00865
+2503.22575,On the Mistaken Assumption of Interchangeable Deep Reinforcement Learning Implementations,haarnoja2018soft,Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor,['Tuomas Haarnoja' 'Aurick Zhou' 'Pieter Abbeel' 'Sergey Levine'],2018.0,1801.01290
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,rombach2022high,High-resolution image synthesis with latent diffusion models,"['Robin Rombach' 'Andreas Blattmann' 'Dominik Lorenz' 'Patrick Esser'
+ 'Bj\\""orn Ommer']",2022.0,2112.10752
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,podell2023sdxl,Sdxl: Improving latent diffusion models for high-resolution image synthesis,"['Dustin Podell' 'Zion English' 'Kyle Lacey' 'Andreas Blattmann'
+ 'Tim Dockhorn' 'Jonas M\\""uller' 'Joe Penna' 'Robin Rombach']",2023.0,2307.01952
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,peebles2023scalable,Scalable diffusion models with transformers,['William Peebles' 'Saining Xie'],2023.0,2212.09748
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,esser2024scaling,Scaling rectified flow transformers for high-resolution image synthesis,"['Patrick Esser' 'Sumith Kulal' 'Andreas Blattmann' 'Rahim Entezari'
+ 'Jonas M\\""uller' 'Harry Saini' 'Yam Levi' 'Dominik Lorenz' 'Axel Sauer'
+ 'Frederic Boesel']",2024.0,2403.03206
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,chen2024pixartsigma,PixArt- : Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation,"['Junsong Chen' 'Chongjian Ge' 'Enze Xie' 'Yue Wu' 'Lewei Yao'
+ 'Xiaozhe Ren' 'Zhongdao Wang' 'Ping Luo' 'Huchuan Lu' 'Zhenguo Li']",2024.0,2403.04692
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,chen2024pixart,PixArt- : Fast Training of Diffusion Transformer for Photorealistic Text-to-Image Synthesis,"['Junsong Chen' 'Jincheng Yu' 'Chongjian Ge' 'Lewei Yao' 'Enze Xie'
+ 'Zhongdao Wang' 'James T Kwok' 'Ping Luo' 'Huchuan Lu' 'Zhenguo Li']",2024.0,2310.00426
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,hu2024ella,Ella: Equip diffusion models with llm for enhanced semantic alignment,['Xiwei Hu' 'Rui Wang' 'Yixiao Fang' 'Bin Fu' 'Pei Cheng' 'Gang Yu'],2024.0,2403.05135
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,feng2024ranni,Ranni: Taming text-to-image diffusion for accurate instruction following,['Yutong Feng' 'Biao Gong' 'Di Chen' 'Yujun Shen' 'Yu Liu' 'Jingren Zhou'],2024.0,2311.17002
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,dahary2024yourself,Be yourself: Bounded attention for multi-subject text-to-image generation,['Omer Dahary' 'Or Patashnik' 'Kfir Aberman' 'Daniel Cohen-Or'],2024.0,2403.16990
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,ma2024directed,Directed diffusion: Direct control of object placement through attention guidance,"['Wan-Duo Kurt Ma' 'Avisek Lahiri' 'John P Lewis' 'Thomas Leung'
+ 'W Bastiaan Kleijn']",2024.0,2302.13153
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,mao2023training,Training-Free Location-Aware Text-to-Image Synthesis,['Jiafeng Mao' 'Xueting Wang'],2023.0,2304.13427
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,xie2023boxdiff,Boxdiff: Text-to-image synthesis with training-free box-constrained diffusion,"['Jinheng Xie' 'Yuexiang Li' 'Yawen Huang' 'Haozhe Liu' 'Wentian Zhang'
+ 'Yefeng Zheng' 'Mike Zheng Shou']",2023.0,2307.10816
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,park2024shape,Shape-guided diffusion with inside-outside attention,"['Dong Huk Park' 'Grace Luo' 'Clayton Toste' 'Samaneh Azadi' 'Xihui Liu'
+ 'Maka Karalashvili' 'Anna Rohrbach' 'Trevor Darrell']",2024.0,2212.00210
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,kim2023dense,Dense text-to-image generation with attention modulation,['Yunji Kim' 'Jiyoung Lee' 'Jin-Hwa Kim' 'Jung-Woo Ha' 'Jun-Yan Zhu'],2023.0,2308.12964
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,wang2024compositional,Compositional text-to-image synthesis with attention map control of diffusion models,"['Ruichen Wang' 'Zekang Chen' 'Chen Chen' 'Jian Ma' 'Haonan Lu'
+ 'Xiaodong Lin']",2024.0,2305.13921
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,marioriyad2024attention,Attention Overlap Is Responsible for The Entity Missing Problem in Text-to-image Diffusion Models!,"['Arash Marioriyad' 'Mohammadali Banayeeanzade' 'Reza Abbasi'
+ 'Mohammad Hossein Rohban' 'Mahdieh Soleymani Baghshah']",2024.0,2410.20972
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,zhang2024attention,Attention calibration for disentangled text-to-image personalization,['Yanbing Zhang' 'Mengping Yang' 'Qin Zhou' 'Zhe Wang'],2024.0,2403.18551
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,sueyoshi2024predicated,Predicated Diffusion: Predicate Logic-Based Attention Guidance for Text-to-Image Diffusion Models,['Kota Sueyoshi' 'Takashi Matsubara'],2024.0,2311.16117
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,rassin2024linguistic,Linguistic binding in diffusion models: Enhancing attribute correspondence through attention map alignment,"['Royi Rassin' 'Eran Hirsch' 'Daniel Glickman' 'Shauli Ravfogel'
+ 'Yoav Goldberg' 'Gal Chechik']",2024.0,2306.08877
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,chefer2023attend,Attend-and-excite: Attention-based semantic guidance for text-to-image diffusion models,['Hila Chefer' 'Yuval Alaluf' 'Yael Vinker' 'Lior Wolf' 'Daniel Cohen-Or'],2023.0,2301.13826
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,ho2020denoising,Denoising diffusion probabilistic models,['Jonathan Ho' 'Ajay Jain' 'Pieter Abbeel'],2020.0,2006.11239
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,feng2022training,Training-free structured diffusion guidance for compositional text-to-image synthesis,"['Weixi Feng' 'Xuehai He' 'Tsu-Jui Fu' 'Varun Jampani' 'Arjun Akula'
+ 'Pradyumna Narayana' 'Sugato Basu' 'Xin Eric Wang' 'William Yang Wang']",2023.0,2212.05032
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,jiang2024comat,Comat: Aligning text-to-image diffusion model with image-to-text concept matching,"['Dongzhi Jiang' 'Guanglu Song' 'Xiaoshi Wu' 'Renrui Zhang' 'Dazhong Shen'
+ 'Zhuofan Zong' 'Yu Liu' 'Hongsheng Li']",2024.0,2404.03653
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,kim2024text,Text Embedding is Not All You Need: Attention Control for Text-to-Image Semantic Alignment with Text Self-Attention Maps,['Jeeyung Kim' 'Erfan Esmaeili' 'Qiang Qiu'],2024.0,2411.15236
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,hu2024token,Token Merging for Training-Free Semantic Binding in Text-to-Image Synthesis,"['Taihang Hu' 'Linxuan Li' 'Joost van de Weijer' 'Hongcheng Gao'
+ 'Fahad Shahbaz Khan' 'Jian Yang' 'Ming-Ming Cheng' 'Kai Wang'
+ 'Yaxing Wang']",2024.0,2411.07132
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,chen2024cat,A cat is a cat (not a dog!): Unraveling information mix-ups in text-to-image encoders through causal analysis and embedding optimization,['Chieh-Yun Chen' 'Chiang Tseng' 'Li-Wu Tsao' 'Hong-Han Shuai'],2024.0,2410.00321
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,zhuang2024magnet,"Magnet: We Never Know How Text-to-Image Diffusion Models Work, Until We Learn How Vision-Language Models Function",['Chenyi Zhuang' 'Ying Hu' 'Pan Gao'],2024.0,2409.19967
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,zhuo2024lumina,Lumina-next: Making lumina-t2x stronger and faster with next-dit,"['Le Zhuo' 'Ruoyi Du' 'Han Xiao' 'Yangguang Li' 'Dongyang Liu'
+ 'Rongjie Huang' 'Wenze Liu' 'Lirui Zhao' 'Fu-Yun Wang' 'Zhanyu Ma']",2024.0,2406.18583
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,toker2025padding,Padding Tone: A Mechanistic Analysis of Padding Tokens in T2I Models,"['Michael Toker' 'Ido Galil' 'Hadas Orgad' 'Rinon Gal' 'Yoad Tewel'
+ 'Gal Chechik' 'Yonatan Belinkov']",2025.0,2501.06751
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,hertz2023prompt,Prompt-to-Prompt Image Editing with Cross-Attention Control,"['Amir Hertz' 'Ron Mokady' 'Jay Tenenbaum' 'Kfir Aberman' 'Yael Pritch'
+ 'Daniel Cohen-Or']",2023.0,2208.01626
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,radford2021learning,Learning transferable visual models from natural language supervision,"['Alec Radford' 'Jong Wook Kim' 'Chris Hallacy' 'Aditya Ramesh'
+ 'Gabriel Goh' 'Sandhini Agarwal' 'Girish Sastry' 'Amanda Askell'
+ 'Pamela Mishkin' 'Jack Clark']",2021.0,2103.00020
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,raffel2020exploring,Exploring the limits of transfer learning with a unified text-to-text transformer,"['Colin Raffel' 'Noam Shazeer' 'Adam Roberts' 'Katherine Lee'
+ 'Sharan Narang' 'Michael Matena' 'Yanqi Zhou' 'Wei Li' 'Peter J Liu']",2020.0,1910.10683
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,ku2024viescore,VIEScore: Towards Explainable Metrics for Conditional Image Synthesis Evaluation,['Max Ku' 'Dongfu Jiang' 'Cong Wei' 'Xiang Yue' 'Wenhu Chen'],2024.0,2312.14867
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,lin2024evaluating,Evaluating text-to-visual generation with image-to-text generation,"['Zhiqiu Lin' 'Deepak Pathak' 'Baiqi Li' 'Jiayao Li' 'Xide Xia'
+ 'Graham Neubig' 'Pengchuan Zhang' 'Deva Ramanan']",2024.0,2404.01291
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,ghosh2023geneval,Geneval: An object-focused framework for evaluating text-to-image alignment,['Dhruba Ghosh' 'Hannaneh Hajishirzi' 'Ludwig Schmidt'],2023.0,2310.11513
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,vilnis2015word,Word representations via gaussian embedding,['Luke Vilnis' 'Andrew McCallum'],2015.0,1412.6623
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,tewel2024training,Training-free consistent text-to-image generation,"['Yoad Tewel' 'Omri Kaduri' 'Rinon Gal' 'Yoni Kasten' 'Lior Wolf'
+ 'Gal Chechik' 'Yuval Atzmon']",2024.0,2402.03286
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,stap2020conditional,Conditional image generation and manipulation for user-specified content,['David Stap' 'Maurits Bleeker' 'Sarah Ibrahimi' 'Maartje Ter Hoeve'],2020.0,2005.04909
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,rassin2022dalle,DALLE-2 is Seeing Double: Flaws in Word-to-Concept Mapping in Text2Image Models,['Royi Rassin' 'Shauli Ravfogel' 'Yoav Goldberg'],2022.0,2210.10606
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,chen2024training,Training-free layout control with cross-attention guidance,['Minghao Chen' 'Iro Laina' 'Andrea Vedaldi'],2024.0,2304.03373
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,li2023divide,Divide \& Bind Your Attention for Improved Generative Semantic Nursing,['Yumeng Li' 'Margret Keuper' 'Dan Zhang' 'Anna Khoreva'],2023.0,2307.10864
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,hao2023optimizing,Optimizing prompts for text-to-image generation,['Yaru Hao' 'Zewen Chi' 'Li Dong' 'Furu Wei'],2023.0,2212.09611
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,zhong2023adapter,Sur-adapter: Enhancing text-to-image pre-trained diffusion models with large language models,"['Shanshan Zhong' 'Zhongzhan Huang' 'Weushao Wen' 'Jinghui Qin'
+ 'Liang Lin']",2023.0,2305.05189
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,phung2024grounded,Grounded text-to-image synthesis with attention refocusing,['Quynh Phung' 'Songwei Ge' 'Jia-Bin Huang'],2024.0,2306.05427
+2503.23011,Geometrical Properties of Text Token Embeddings for Strong Semantic Binding in Text-to-Image Generation,li2022blip,Blip: Bootstrapping language-image pre-training for unified vision-language understanding and generation,['Junnan Li' 'Dongxu Li' 'Caiming Xiong' 'Steven Hoi'],2022.0,2201.12086
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,radford2021clip,Learning Transferable Visual Models From Natural Language Supervision,"['Alec Radford' 'Jong Wook Kim' 'Chris Hallacy' 'Aditya Ramesh'
+ 'Gabriel Goh' 'Sandhini Agarwal' 'Girish Sastry' 'Amanda Askell'
+ 'Pamela Mishkin' 'Jack Clark' 'Gretchen Krueger' 'Ilya Sutskever']",2021.0,2103.00020
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,zhang2024imagenetd,ImageNet-D: Benchmarking Neural Network Robustness on Diffusion Synthetic Object,['Chenshuang Zhang' 'Fei Pan' 'Junmo Kim' 'In So Kweon' 'Chengzhi Mao'],2024.0,2403.18775
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,neuhaus2023spurious,Spurious Features Everywhere -- Large-Scale Detection of Harmful Spurious Features in ImageNet,['Yannic Neuhaus' 'Maximilian Augustin' 'Valentyn Boreiko' 'Matthias Hein'],2023.0,2212.04871
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,singla2021causal,Causal ImageNet: How to discover spurious features in Deep Learning?,['Sahil Singla' 'Soheil Feizi'],2022.0,2110.04301
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,schuhmann2022laion,Laion-5b: An open large-scale dataset for training next generation image-text models,"['Christoph Schuhmann' 'Romain Beaumont' 'Richard Vencu' 'Cade Gordon'
+ 'Ross Wightman' 'Mehdi Cherti' 'Theo Coombes' 'Aarush Katta'
+ 'Clayton Mullis' 'Mitchell Wortsman']",2022.0,2210.08402
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,dosovitskiy2020image,An image is worth 16x16 words: Transformers for image recognition at scale,"['Alexey Dosovitskiy' 'Lucas Beyer' 'Alexander Kolesnikov'
+ 'Dirk Weissenborn' 'Xiaohua Zhai' 'Thomas Unterthiner' 'Mostafa Dehghani'
+ 'Matthias Minderer' 'Georg Heigold' 'Sylvain Gelly']",2021.0,2010.11929
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,singla2021salient,Salient ImageNet: How to discover spurious features in Deep Learning?,['Sahil Singla' 'Soheil Feizi'],2022.0,2110.04301
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,augustin2024dig,DiG-IN: Diffusion Guidance for Investigating Networks-Uncovering Classifier Differences Neuron Visualisations and Visual Counterfactual Explanations,['Maximilian Augustin' 'Yannic Neuhaus' 'Matthias Hein'],2024.0,2311.17833
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,samuel2024generating,Generating images of rare concepts using pre-trained diffusion models,['Dvir Samuel' 'Rami Ben-Ari' 'Simon Raviv' 'Nir Darshan' 'Gal Chechik'],2024.0,2304.14530
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,minderer2024scaling,Scaling open-vocabulary object detection,['Matthias Minderer' 'Alexey Gritsenko' 'Neil Houlsby'],2024.0,2306.09683
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,kaul2024throne,THRONE: An object-based hallucination benchmark for the free-form generations of large vision-language models,"['Prannay Kaul' 'Zhizhong Li' 'Hao Yang' 'Yonatan Dukler'
+ 'Ashwin Swaminathan' 'CJ Taylor' 'Stefano Soatto']",2024.0,2405.05256
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,li2023evaluating,Evaluating object hallucination in large vision-language models,"['Yifan Li' 'Yifan Du' 'Kun Zhou' 'Jinpeng Wang' 'Wayne Xin Zhao'
+ 'Ji-Rong Wen']",2023.0,2305.10355
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,ren2024hyper,Hyper-sd: Trajectory segmented consistency model for efficient image synthesis,"['Yuxi Ren' 'Xin Xia' 'Yanzuo Lu' 'Jiacheng Zhang' 'Jie Wu' 'Pan Xie'
+ 'Xing Wang' 'Xuefeng Xiao']",2024.0,2404.13686
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,rohrbach2018CHAIR,Object Hallucination in Image Captioning,"['Anna Rohrbach' 'Lisa Anne Hendricks' 'Kaylee Burns' 'Trevor Darrell'
+ 'Kate Saenko']",2018.0,1809.02156
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,metzen2023identification,Identification of systematic errors of image classifiers on rare subgroups,"['Jan Hendrik Metzen' 'Robin Hutmacher' 'N Grace Hua' 'Valentyn Boreiko'
+ 'Dan Zhang']",2023.0,2303.05072
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,zhai2023siglip,Sigmoid Loss for Language Image Pre-Training,['Xiaohua Zhai' 'Basil Mustafa' 'Alexander Kolesnikov' 'Lucas Beyer'],2023.0,2303.15343
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,liu2024llava15,Improved Baselines with Visual Instruction Tuning,['Haotian Liu' 'Chunyuan Li' 'Yuheng Li' 'Yong Jae Lee'],2024.0,2310.03744
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,li2024llavaOneVision,LLaVA-OneVision: Easy Visual Task Transfer,"['Bo Li' 'Yuanhan Zhang' 'Dong Guo' 'Renrui Zhang' 'Feng Li' 'Hao Zhang'
+ 'Kaichen Zhang' 'Yanwei Li' 'Ziwei Liu' 'Chunyuan Li']",2024.0,2408.03326
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,steiner2024paligemma,Paligemma 2: A family of versatile vlms for transfer,"['Andreas Steiner' ""Andr\\'e Susano Pinto"" 'Michael Tschannen'
+ 'Daniel Keysers' 'Xiao Wang' 'Yonatan Bitton' 'Alexey Gritsenko'
+ 'Matthias Minderer' 'Anthony Sherbondy' 'Shangbang Long']",2024.0,2412.03555
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,lu2024ovis,Ovis: Structural embedding alignment for multimodal large language model,"['Shiyin Lu' 'Yang Li' 'Qing-Guo Chen' 'Zhao Xu' 'Weihua Luo'
+ 'Kaifu Zhang' 'Han-Jia Ye']",2024.0,2405.20797
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,chen2024expanding,"Expanding Performance Boundaries of Open-Source Multimodal Models with Model, Data, and Test-Time Scaling","['Zhe Chen' 'Weiyun Wang' 'Yue Cao' 'Yangzhou Liu' 'Zhangwei Gao'
+ 'Erfei Cui' 'Jinguo Zhu' 'Shenglong Ye' 'Hao Tian' 'Zhaoyang Liu']",2024.0,2412.05271
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,Qwen2VL,Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution,"['Peng Wang' 'Shuai Bai' 'Sinan Tan' 'Shijie Wang' 'Zhihao Fan'
+ 'Jinze Bai' 'Keqin Chen' 'Xuejing Liu' 'Jialin Wang' 'Wenbin Ge'
+ 'Yang Fan' 'Kai Dang' 'Mengfei Du' 'Xuancheng Ren' 'Rui Men'
+ 'Dayiheng Liu' 'Chang Zhou' 'Jingren Zhou' 'Junyang Lin']",2024.0,2409.12191
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,wang2023llm,An LLM-free Multi-dimensional Benchmark for MLLMs Hallucination Evaluation,"['Junyang Wang' 'Yuhang Wang' 'Guohai Xu' 'Jing Zhang' 'Yukai Gu'
+ 'Haitao Jia' 'Ming Yan' 'Ji Zhang' 'Jitao Sang']",2023.0,2311.07397
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,wang2024haloquest,HaloQuest: A Visual Hallucination Dataset for Advancing Multimodal Reasoning,"['Zhecan Wang' 'Garrett Bingham' 'Adams Yu' 'Quoc Le' 'Thang Luong'
+ 'Golnaz Ghiasi']",2024.0,2407.15680
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,zhou2024analyzingmitigatingobjecthallucination,Analyzing and Mitigating Object Hallucination in Large Vision-Language Models,"['Yiyang Zhou' 'Chenhang Cui' 'Jaehong Yoon' 'Linjun Zhang' 'Zhun Deng'
+ 'Chelsea Finn' 'Mohit Bansal' 'Huaxiu Yao']",2024.0,2310.00754
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,leng2023mitigatingobjecthallucinationslarge,Mitigating Object Hallucinations in Large Vision-Language Models through Visual Contrastive Decoding,"['Sicong Leng' 'Hang Zhang' 'Guanzheng Chen' 'Xin Li' 'Shijian Lu'
+ 'Chunyan Miao' 'Lidong Bing']",2024.0,2311.16922
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,liu2024mitigatinghallucinationlargemultimodal,Mitigating Hallucination in Large Multi-Modal Models via Robust Instruction Tuning,"['Fuxiao Liu' 'Kevin Lin' 'Linjie Li' 'Jianfeng Wang' 'Yaser Yacoob'
+ 'Lijuan Wang']",2024.0,2306.14565
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,gunjal2024detectingpreventinghallucinationslarge,Detecting and Preventing Hallucinations in Large Vision Language Models,['Anisha Gunjal' 'Jihan Yin' 'Erhan Bas'],2024.0,2308.06394
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,tong2024eyeswideshutexploring,Eyes Wide Shut? Exploring the Visual Shortcomings of Multimodal LLMs,"['Shengbang Tong' 'Zhuang Liu' 'Yuexiang Zhai' 'Yi Ma' 'Yann LeCun'
+ 'Saining Xie']",2024.0,2401.06209
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,karamcheti2024prismatic,Prismatic VLMs: Investigating the Design Space of Visually-Conditioned Language Models,"['Siddharth Karamcheti' 'Suraj Nair' 'Ashwin Balakrishna' 'Percy Liang'
+ 'Thomas Kollar' 'Dorsa Sadigh']",2024.0,2402.07865
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,oquab2023dinov2,Dinov2: Learning robust visual features without supervision,"['Maxime Oquab' ""Timoth\\'ee Darcet"" ""Th\\'eo Moutakanni"" 'Huy Vo'
+ 'Marc Szafraniec' 'Vasil Khalidov' 'Pierre Fernandez' 'Daniel Haziza'
+ 'Francisco Massa' 'Alaaeldin El-Nouby']",2023.0,2304.07193
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,lin2014coco,Microsoft coco: Common objects in context,"['Tsung-Yi Lin' 'Michael Maire' 'Serge Belongie' 'James Hays'
+ 'Pietro Perona' 'Deva Ramanan' ""Piotr Doll\\'ar"" 'C Lawrence Zitnick']",2014.0,1405.0312
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,liu2024surveyvlmhallucination,A survey on hallucination in large vision-language models,"['Hanchao Liu' 'Wenyuan Xue' 'Yifei Chen' 'Dapeng Chen' 'Xiutian Zhao'
+ 'Ke Wang' 'Liping Hou' 'Rongjun Li' 'Wei Peng']",2024.0,2402.00253
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,rbench,Evaluating and Analyzing Relationship Hallucinations in Large Vision-Language Models,"['Mingrui Wu' 'Jiayi Ji' 'Oucheng Huang' 'Jiale Li' 'Yuhang Wu'
+ 'Xiaoshuai Sun' 'Rongrong Ji']",2024.0,2406.16449
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,podell2023sdxl,Sdxl: Improving latent diffusion models for high-resolution image synthesis,"['Dustin Podell' 'Zion English' 'Kyle Lacey' 'Andreas Blattmann'
+ 'Tim Dockhorn' 'Jonas M\\""uller' 'Joe Penna' 'Robin Rombach']",2023.0,2307.01952
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,samuel2024norm,Norm-guided latent space exploration for text-to-image generation,['Dvir Samuel' 'Rami Ben-Ari' 'Nir Darshan' 'Haggai Maron' 'Gal Chechik'],2024.0,2306.08687
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,wolf2019huggingface,Huggingface's transformers: State-of-the-art natural language processing,['T Wolf'],2019.0,1910.03771
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,wei2022chain,Chain-of-thought prompting elicits reasoning in large language models,"['Jason Wei' 'Xuezhi Wang' 'Dale Schuurmans' 'Maarten Bosma' 'Fei Xia'
+ 'Ed Chi' 'Quoc V Le' 'Denny Zhou']",2022.0,2201.11903
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,hu2021lora,Lora: Low-rank adaptation of large language models,"['Edward J Hu' 'Yelong Shen' 'Phillip Wallis' 'Zeyuan Allen-Zhu'
+ 'Yuanzhi Li' 'Shean Wang' 'Lu Wang' 'Weizhu Chen']",2021.0,2106.09685
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,team2024gemma,Gemma: Open models based on gemini research and technology,"['Gemma Team' 'Thomas Mesnard' 'Cassidy Hardin' 'Robert Dadashi'
+ 'Surya Bhupatiraju' 'Shreya Pathak' 'Laurent Sifre' 'Morgane Rivi\\`ere'
+ 'Mihir Sanjay Kale' 'Juliette Love']",2024.0,2403.08295
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,luo2023latent,Latent consistency models: Synthesizing high-resolution images with few-step inference,['Simian Luo' 'Yiqin Tan' 'Longbo Huang' 'Jian Li' 'Hang Zhao'],2023.0,2310.04378
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,webster2023duplication,On the de-duplication of laion-2b,['Ryan Webster' 'Julien Rabin' 'Loic Simon' 'Frederic Jurie'],2023.0,2303.12733
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,duan2024vlmevalkit,Vlmevalkit: An open-source toolkit for evaluating large multi-modality models,"['Haodong Duan' 'Junming Yang' 'Yuxuan Qiao' 'Xinyu Fang' 'Lin Chen'
+ 'Yuan Liu' 'Xiaoyi Dong' 'Yuhang Zang' 'Pan Zhang' 'Jiaqi Wang']",2024.0,2407.11691
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,singh2019towards,Towards VQA Models That Can Read,"['Amanpreet Singh' 'Vivek Natarjan' 'Meet Shah' 'Yu Jiang' 'Xinlei Chen'
+ 'Devi Parikh' 'Marcus Rohrbach']",2019.0,1904.08920
+2503.23573,DASH: Detection and Assessment of Systematic Hallucinations of VLMs,balanced_vqa_v2,Making the V in VQA Matter: Elevating the Role of Image Understanding in Visual Question Answering,"['Yash Goyal' 'Tejas Khot' 'Douglas Summers-Stay' 'Dhruv Batra'
+ 'Devi Parikh']",2017.0,1612.00837
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,repoformer,Repoformer: Selective Retrieval for Repository-Level Code Completion,"['Di Wu' 'Wasi Uddin Ahmad' 'Dejiao Zhang' 'Murali Krishna Ramanathan'
+ 'Xiaofei Ma']",2024.0,2403.10059
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,schick2024toolformer,Toolformer: Language Models Can Teach Themselves to Use Tools,"['Timo Schick' 'Jane Dwivedi-Yu' 'Roberto Dess\\`' 'Roberta Raileanu'
+ 'Maria Lomeli' 'Eric Hambro' 'Luke Zettlemoyer' 'Nicola Cancedda'
+ 'Thomas Scialom']",2023.0,2302.04761
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/nips/LewisPPPKGKLYR020,Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,"['Patrick S. H. Lewis' 'Ethan Perez' 'Aleksandra Piktus' 'Fabio Petroni'
+ 'Vladimir Karpukhin' 'Naman Goyal' 'Heinrich K\\""uttler' 'Mike Lewis'
+ 'Wen-tau Yih' 'Tim Rockt\\""aschel' 'Sebastian Riedel' 'Douwe Kiela']",2020.0,2005.11401
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,touvron2023llama,Llama 2: Open foundation and fine-tuned chat models,"['Hugo Touvron' 'Louis Martin' 'Kevin Stone' 'Peter Albert'
+ 'Amjad Almahairi' 'Yasmine Babaei' 'Nikolay Bashlykov' 'Soumya Batra'
+ 'Prajjwal Bhargava' 'Shruti Bhosale']",2023.0,2307.09288
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,abdin2024phi,Phi-3 technical report: A highly capable language model locally on your phone,"['Marah Abdin' 'Jyoti Aneja' 'Hany Awadalla' 'Ahmed Awadallah'
+ 'Ammar Ahmad Awan' 'Nguyen Bach' 'Amit Bahree' 'Arash Bakhtiari'
+ 'Jianmin Bao' 'Harkirat Behl']",2024.0,2404.14219
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,parekh2024dynamic,Dynamic Strategy Planning for Efficient Question Answering with Large Language Models,"['Tanmay Parekh' 'Pradyot Prakash' 'Alexander Radovic' 'Akshay Shekher'
+ 'Denis Savenkov']",2025.0,2410.23511
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/acl/MallenAZDKH23,When Not to Trust Language Models: Investigating Effectiveness of Parametric and Non-Parametric Memories,"['Alex Mallen' 'Akari Asai' 'Victor Zhong' 'Rajarshi Das'
+ 'Daniel Khashabi' 'Hannaneh Hajishirzi']",2023.0,2212.10511
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/iclr/KhandelwalLJZL20,Generalization through Memorization: Nearest Neighbor Language Models,"['Urvashi Khandelwal' 'Omer Levy' 'Dan Jurafsky' 'Luke Zettlemoyer'
+ 'Mike Lewis']",2020.0,1911.00172
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/icml/BorgeaudMHCRM0L22,Improving Language Models by Retrieving from Trillions of Tokens,"['Sebastian Borgeaud' 'Arthur Mensch' 'Jordan Hoffmann' 'Trevor Cai'
+ 'Eliza Rutherford' 'Katie Millican' 'George van den Driessche'
+ 'Jean-Baptiste Lespiau' 'Bogdan Damoc' 'Aidan Clark' 'Diego de Las Casas'
+ 'Aurelia Guy' 'Jacob Menick' 'Roman Ring' 'Tom Hennigan' 'Saffron Huang'
+ 'Loren Maggiore' 'Chris Jones' 'Albin Cassirer' 'Andy Brock'
+ 'Michela Paganini' 'Geoffrey Irving' 'Oriol Vinyals' 'Simon Osindero'
+ 'Karen Simonyan' 'Jack W. Rae' 'Erich Elsen' 'Laurent Sifre']",2022.0,2112.04426
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/iclr/AsaiWWSH24,"Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",['Akari Asai' 'Zeqiu Wu' 'Yizhong Wang' 'Avirup Sil' 'Hannaneh Hajishirzi'],2024.0,2310.11511
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,moskvoretskii2025adaptiveretrievalselfknowledgebringing,Adaptive Retrieval Without Self-Knowledge? Bringing Uncertainty Back Home,"['Viktor Moskvoretskii' 'Maria Lysyuk' 'Mikhail Salnikov' 'Nikolay Ivanov'
+ 'Sergey Pletenev' 'Daria Galimzianova' 'Nikita Krayko' 'Vasily Konovalov'
+ 'Irina Nikishina' 'Alexander Panchenko']",2025.0,2501.12835
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/nips/Wei0SBIXCLZ22,Chain-of-Thought Prompting Elicits Reasoning in Large Language Models,"['Jason Wei' 'Xuezhi Wang' 'Dale Schuurmans' 'Maarten Bosma'
+ 'Brian Ichter' 'Fei Xia' 'Ed H. Chi' 'Quoc V. Le' 'Denny Zhou']",2022.0,2201.11903
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/iclr/0002IWXJ000023,Generate rather than Retrieve: Large Language Models are Strong Context Generators,"['Wenhao Yu' 'Dan Iter' 'Shuohang Wang' 'Yichong Xu' 'Mingxuan Ju'
+ 'Soumya Sanyal' 'Chenguang Zhu' 'Michael Zeng' 'Meng Jiang']",2023.0,2209.10063
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2309-14402,"Physics of Language Models: Part 3.2, Knowledge Manipulation",['Zeyuan Allen-Zhu' 'Yuanzhi Li'],2025.0,2309.14402
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2406-19215,SeaKR: Self-aware Knowledge Retrieval for Adaptive Retrieval Augmented Generation,"['Zijun Yao' 'Weijian Qi' 'Liangming Pan' 'Shulin Cao' 'Linmei Hu'
+ 'Weichuan Liu' 'Lei Hou' 'Juanzi Li']",2024.0,2406.19215
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2401-15884,Corrective Retrieval Augmented Generation,['Shi-Qi Yan' 'Jia-Chen Gu' 'Yun Zhu' 'Zhen-Hua Ling'],2024.0,2401.15884
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/nips/KojimaGRMI22,Large Language Models are Zero-Shot Reasoners,"['Takeshi Kojima' 'Shixiang Shane Gu' 'Machel Reid' 'Yutaka Matsuo'
+ 'Yusuke Iwasawa']",2022.0,2205.11916
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2407-06023,Distilling System 2 into System 1,['Ping Yu' 'Jing Xu' 'Jason Weston' 'Ilia Kulikov'],2024.0,2407.06023
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/nips/RafailovSMMEF23,Direct Preference Optimization: Your Language Model is Secretly a Reward Model,"['Rafael Rafailov' 'Archit Sharma' 'Eric Mitchell'
+ 'Christopher D. Manning' 'Stefano Ermon' 'Chelsea Finn']",2023.0,2305.18290
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/iclr/DinanRSFAW19,Wizard of Wikipedia: Knowledge-Powered Conversational Agents,"['Emily Dinan' 'Stephen Roller' 'Kurt Shuster' 'Angela Fan' 'Michael Auli'
+ 'Jason Weston']",2019.0,1811.01241
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2102-03315,"Think you have Solved Direct-Answer Question Answering? Try ARC-DA, the Direct-Answer AI2 Reasoning Challenge","['Sumithra Bhakthavatsalam' 'Daniel Khashabi' 'Tushar Khot'
+ 'Bhavana Dalvi Mishra' 'Kyle Richardson' 'Ashish Sabharwal'
+ 'Carissa Schoenick' 'Oyvind Tafjord' 'Peter Clark']",2021.0,2102.03315
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:conf/icml/YinSC24,Characterizing Truthfulness in Large Language Model Generations with Local Intrinsic Dimension,['Fan Yin' 'Jayanth Srinivasa' 'Kai-Wei Chang'],2024.0,2402.18048
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,DBLP:journals/corr/abs-2304-03728,Interpretable Unified Language Checking,"['Tianhua Zhang' 'Hongyin Luo' 'Yung-Sung Chuang' 'Wei Fang'
+ 'Luc Gaitskell' 'Thomas Hartvigsen' 'Xixin Wu' 'Danny Fox' 'Helen Meng'
+ 'James R. Glass']",2023.0,2304.03728
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,ram-etal-2023-context,In-Context Retrieval-Augmented Language Models,"['Ori Ram' 'Yoav Levine' 'Itay Dalmedigos' 'Dor Muhlgay' 'Amnon Shashua'
+ 'Kevin Leyton-Brown' 'Yoav Shoham']",2023.0,2302.00083
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,shi-etal-2024-replug,REPLUG: Retrieval-Augmented Black-Box Language Models,"['Weijia Shi' 'Sewon Min' 'Michihiro Yasunaga' 'Minjoon Seo'
+ 'Richard James' 'Mike Lewis' 'Luke Zettlemoyer' 'Wen-tau Yih']",2024.0,2301.12652
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,he-etal-2021-efficient,Efficient Nearest Neighbor Language Models,['Junxian He' 'Graham Neubig' 'Taylor Berg-Kirkpatrick'],2021.0,2109.04212
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,jeong-etal-2024-adaptive,Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity,['Soyeong Jeong' 'Jinheon Baek' 'Sukmin Cho' 'Sung Ju Hwang' 'Jong Park'],2024.0,2403.14403
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,wang-etal-2023-self-knowledge,Self-Knowledge Guided Retrieval Augmentation for Large Language Models,['Yile Wang' 'Peng Li' 'Maosong Sun' 'Yang Liu'],2023.0,2310.05002
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,jiang-etal-2023-active,Active Retrieval Augmented Generation,"['Zhengbao Jiang' 'Frank Xu' 'Luyu Gao' 'Zhiqing Sun' 'Qian Liu'
+ 'Jane Dwivedi-Yu' 'Yiming Yang' 'Jamie Callan' 'Graham Neubig']",2023.0,2305.06983
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,su-etal-2024-dragin,DRAGIN: Dynamic Retrieval Augmented Generation based on the Real-time Information Needs of Large Language Models,['Weihang Su' 'Yichen Tang' 'Qingyao Ai' 'Zhijing Wu' 'Yiqun Liu'],2024.0,2403.10081
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,shao-etal-2023-enhancing,Enhancing Retrieval-Augmented Large Language Models with Iterative Retrieval-Generation Synergy,"['Zhihong Shao' 'Yeyun Gong' 'Yelong Shen' 'Minlie Huang' 'Nan Duan'
+ 'Weizhu Chen']",2023.0,2305.15294
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,kim-etal-2023-tree,Tree of Clarifications: Answering Ambiguous Questions with Retrieval-Augmented Large Language Models,"['Gangwoo Kim' 'Sungdong Kim' 'Byeongguk Jeon' 'Joonsuk Park'
+ 'Jaewoo Kang']",2023.0,2310.14696
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,liu-etal-2024-ra,RA-ISF: Learning to Answer and Understand from Retrieval Augmentation via Iterative Self-Feedback,"['Yanming Liu' 'Xinyue Peng' 'Xuhong Zhang' 'Weihao Liu' 'Jianwei Yin'
+ 'Jiannan Cao' 'Tianyu Du']",2024.0,2403.06840
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,lee-etal-2024-planrag,PlanRAG: A Plan-then-Retrieval Augmented Generation for Generative Large Language Models as Decision Makers,['Myeonghwa Lee' 'Seonho An' 'Min-Soo Kim'],2024.0,2406.12430
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,shwartz-etal-2020-unsupervised,Unsupervised Commonsense Question Answering with Self-Talk,"['Vered Shwartz' 'Peter West' 'Ronan Le Bras' 'Chandra Bhagavatula'
+ 'Yejin Choi']",2020.0,2004.05483
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,liu-etal-2022-generated,Generated Knowledge Prompting for Commonsense Reasoning,"['Jiacheng Liu' 'Alisa Liu' 'Ximing Lu' 'Sean Welleck' 'Peter West'
+ 'Ronan Le Bras' 'Yejin Choi' 'Hannaneh Hajishirzi']",2022.0,2110.08387
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,karpukhin-etal-2020-dense,Dense Passage Retrieval for Open-Domain Question Answering,"['Vladimir Karpukhin' 'Barlas Oguz' 'Sewon Min' 'Patrick Lewis'
+ 'Ledell Wu' 'Sergey Edunov' 'Danqi Chen' 'Wen-tau Yih']",2020.0,2004.04906
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,wu-etal-2024-synchronous,Synchronous Faithfulness Monitoring for Trustworthy Retrieval-Augmented Generation,['Di Wu' 'Jia-Chen Gu' 'Fan Yin' 'Nanyun Peng' 'Kai-Wei Chang'],2024.0,2406.13692
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,joshi-etal-2017-triviaqa,TriviaQA: A Large Scale Distantly Supervised Challenge Dataset for Reading Comprehension,['Mandar Joshi' 'Eunsol Choi' 'Daniel Weld' 'Luke Zettlemoyer'],2017.0,1705.03551
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,stelmakh-etal-2022-asqa,ASQA: Factoid Questions Meet Long-Form Answers,['Ivan Stelmakh' 'Yi Luan' 'Bhuwan Dhingra' 'Ming-Wei Chang'],2022.0,2204.06092
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,mihaylov-etal-2018-suit,Can a Suit of Armor Conduct Electricity? A New Dataset for Open Book Question Answering,['Todor Mihaylov' 'Peter Clark' 'Tushar Khot' 'Ashish Sabharwal'],2018.0,1809.02789
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,thorne-etal-2018-fever,FEVER: a Large-scale Dataset for Fact Extraction and VERification,"['James Thorne' 'Andreas Vlachos' 'Christos Christodoulopoulos'
+ 'Arpit Mittal']",2018.0,1803.05355
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,lou2025adacot,AdaCoT: Pareto-Optimal Adaptive Chain-of-Thought Triggering via Reinforcement Learning,"['Chenwei Lou' 'Zewei Sun' 'Xinnian Liang' 'Meng Qu' 'Wei Shen'
+ 'Wenqi Wang' 'Yuntao Li' 'Qingping Yang' 'Shuangzhi Wu']",2025.0,2505.11896
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,xiong-etal-2024-benchmarking,Benchmarking Retrieval-Augmented Generation for Medicine,['Guangzhi Xiong' 'Qiao Jin' 'Zhiyong Lu' 'Aidong Zhang'],2024.0,2402.13178
+2504.01018,Self-Routing RAG: Binding Selective Retrieval with Knowledge Verbalization,jin-etal-2019-pubmedqa,PubMedQA: A Dataset for Biomedical Research Question Answering,['Qiao Jin' 'Bhuwan Dhingra' 'Zhengping Liu' 'William Cohen' 'Xinghua Lu'],2019.0,1909.06146
