@@ -134,6 +134,38 @@ class BenchmarkNotebookTest(unittest.TestCase):
                 self.cells[i]["cell_type"],
                 f"Mismatch in cell {i+1} type between report and project notebooks"
             )
+            self.assertEqual(
+                "".join(data["cells"][i].get("source", [])),
+                "".join(self.cells[i].get("source", [])),
+                f"Mismatch in cell {i+1} source between report and project notebooks"
+            )
+
+    def test_chart_visual_layout_no_text_overlap(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        scope = {}
+        exec(compile("".join(self.cells[1]["source"]), "constants", "exec"), scope)
+
+        for idx in [6, 7, 8]:
+            code = "".join(self.cells[idx]["source"])
+            check_script = (
+                "fig.canvas.draw()\n"
+                "renderer = fig.canvas.get_renderer()\n"
+                "texts = []\n"
+                "for child in ax.get_children():\n"
+                "    if hasattr(child, 'get_text') and child.get_text():\n"
+                "        texts.append((child.get_text()[:25], child.get_window_extent(renderer)))\n"
+                "for i in range(len(texts)):\n"
+                "    for j in range(i + 1, len(texts)):\n"
+                "        t1, b1 = texts[i]\n"
+                "        t2, b2 = texts[j]\n"
+                "        if (b1.x1 > b2.x0 and b1.x0 < b2.x1 and b1.y1 > b2.y0 and b1.y0 < b2.y1):\n"
+                "            raise AssertionError(f'Text collision in chart cell {idx+1}: {t1!r} and {t2!r}')\n"
+                "plt.close()\n"
+            )
+            exec(compile(code.replace("plt.show()", check_script), f"cell_{idx+1}", "exec"), scope)
 
 
 if __name__ == "__main__":
