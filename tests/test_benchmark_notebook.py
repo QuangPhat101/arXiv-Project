@@ -1,142 +1,139 @@
-"""Offline notebook checks: definition cells only, no Colab/network/live runner.
+"""Offline notebook checks for milestone1_benchmark.ipynb.
 
-Queue operations run against temporary local state. A separate GitJournal test
-uses a local bare repository to exercise a real non-fast-forward retry.
+Validates notebook structure, telemetry constants, compilation of all code cells,
+absence of crawler/leakage code, and presence of pre-executed visualization outputs.
 """
-import hashlib
 import json
-import subprocess
-import tempfile
+import re
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK = ROOT / "notebooks/benchmark_20k_colab.ipynb"
+NOTEBOOK = ROOT / "notebooks/milestone1_benchmark.ipynb"
 
 
-def definitions():
-    nb = json.loads(NOTEBOOK.read_text())
-    scope = {}
-    for i in (2, 3, 4, 5):
-        source = "".join(nb["cells"][i]["source"])
-        exec(compile(source, f"benchmark-cell-{i}", "exec"), scope)
-    compile(scope["CHILD_SOURCE"], "benchmark-child", "exec")
-    return scope
-
-
-class LocalJournal:
-    def __init__(self, path, base):
-        self.path, self.base = path, base
-
-    def update(self, message, edit):
-        value, changes = edit(self.path)
-        for name, data in changes.items():
-            target = self.path / self.base / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
-        return value
+def load_notebook():
+    if not NOTEBOOK.exists():
+        raise FileNotFoundError(f"Notebook not found: {NOTEBOOK}")
+    return json.loads(NOTEBOOK.read_text(encoding="utf-8"))
 
 
 class BenchmarkNotebookTest(unittest.TestCase):
-    def setUp(self):
-        self.s = definitions()
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.journal = LocalJournal(self.root, self.s["BASE"])
-        self.groups = {f"2506.{i:05d}": [f"2506.{i:05d}"] for i in range(1, 7)}
-        contract = {"csv_ranges": {"sample": ["2506.00001", "2506.00006", 6]}}
-        self.s["bootstrap"](self.journal, self.groups, contract, b"test\n")
+    @classmethod
+    def setUpClass(cls):
+        cls.nb = load_notebook()
+        cls.cells = cls.nb.get("cells", [])
 
-    def test_compile_all_cells_without_execution(self):
-        nb = json.loads(NOTEBOOK.read_text())
-        for i, cell in enumerate(nb["cells"]):
-            if cell["cell_type"] == "code":
-                compile("".join(cell["source"]), f"cell-{i}", "exec")
-        self.assertEqual(self.s["CODE_SHA"], "c87f35aca9495f7e3aa4261340d5f10778b692ea")
+    def test_notebook_exists_and_format(self):
+        self.assertTrue(NOTEBOOK.is_file())
+        self.assertEqual(self.nb.get("nbformat"), 4)
 
-    def test_four_runtime_limit_and_expired_lease_recovery(self):
-        jobs = [self.s["claim"](self.journal, self.groups, str(i), now_fn=lambda: 100) for i in range(4)]
-        self.assertEqual(len({job[1] for job in jobs}), 4)
-        self.assertEqual(self.s["claim"](self.journal, self.groups, "fifth", now_fn=lambda: 101)[0], "wait")
-        new = self.s["claim"](self.journal, self.groups, "restart", now_fn=lambda: 500)
-        self.assertEqual(new[1], jobs[0][1])
-        with self.assertRaises(self.s["LeaseLost"]):
-            self.s["touch"](self.journal, jobs[0][1], jobs[0][2], {}, now_fn=lambda: 501)
+    def test_cell_count_and_sequence(self):
+        self.assertEqual(len(self.cells), 13, "Notebook must have exactly 13 cells according to specification")
+        expected_types = [
+            "markdown",  # Cell 1: Title & Abstract
+            "code",      # Cell 2: Import & Constants
+            "markdown",  # Cell 3: Introduction
+            "markdown",  # Cell 4: Traditional benchmark challenges
+            "markdown",  # Cell 5: Distributed benchmark solution
+            "markdown",  # Cell 6: Paper lifecycle pipeline
+            "code",      # Cell 7: Figure 1 - Phase duration breakdown
+            "code",      # Cell 8: Figure 2 - Partition outcomes
+            "code",      # Cell 9: Figure 3 - Baseline vs Parallel vs 20k
+            "code",      # Cell 10: Summary table
+            "markdown",  # Cell 11: Bottleneck analysis
+            "markdown",  # Cell 12: Future improvements
+            "markdown",  # Cell 13: Conclusion
+        ]
+        actual_types = [c.get("cell_type") for c in self.cells]
+        self.assertEqual(actual_types, expected_types)
 
-    def test_checkpoint_release_and_idempotent_commit(self):
-        claim = self.s["claim"]
-        job = claim(self.journal, self.groups, "s", now_fn=lambda: 100)
-        _, block, token, ids = job
-        self.s["touch"](self.journal, block, token, {"evidence.txt": b"checkpoint"}, release=True, now_fn=lambda: 110)
-        job = claim(self.journal, self.groups, "resume", now_fn=lambda: 120)
-        _, block, token, ids = job
-        rows = {aid: dict(outcome="SUCCESS", raw_bytes=10, extracted_bytes=5, disk_bytes=5) for aid in ids}
-        receipt = dict(drive_id="fake", sha256="fake")
-        commit = self.s["commit_pass"]
-        with self.assertRaisesRegex(ValueError, "biên nhận"):
-            commit(self.journal, self.groups, block, token, rows, {}, {}, now_fn=lambda: 125)
-        commit(self.journal, self.groups, block, token, rows, {}, receipt, now_fn=lambda: 130)
-        commit(self.journal, self.groups, block, token, rows, {}, receipt, now_fn=lambda: 140)
-        state = self.s["get_state"](self.root, block)
-        self.assertEqual(state["passes"][ids[0]], 1)
-        self.assertIsNotNone(state["done_at"])
-        progress = self.s["latest_progress"](self.root, self.groups)
-        self.assertEqual(progress["evaluated_distinct"], 1)
+    def test_compile_all_code_cells(self):
+        for i, cell in enumerate(self.cells):
+            if cell.get("cell_type") == "code":
+                source = "".join(cell.get("source", []))
+                compile(source, f"milestone1_benchmark_cell_{i+1}", "exec")
 
-    def test_discovery_slot_excludes_other_runtime(self):
-        a = self.s["claim"](self.journal, self.groups, "a", now_fn=lambda: 100)
-        b = self.s["claim"](self.journal, self.groups, "b", now_fn=lambda: 100)
-        slot = self.s["api_slot"]
-        self.assertTrue(slot(self.journal, a[1], a[2], now_fn=lambda: 101)[0])
-        self.assertFalse(slot(self.journal, b[1], b[2], now_fn=lambda: 102)[0])
-        self.s["free_slot"](self.journal, a[2], now_fn=lambda: 103)
-        self.assertFalse(slot(self.journal, b[1], b[2], now_fn=lambda: 105)[0])
-        self.assertTrue(slot(self.journal, b[1], b[2], now_fn=lambda: 108)[0])
+    def test_telemetry_constants(self):
+        cell_2_source = "".join(self.cells[1].get("source", []))
+        scope = {}
+        exec(compile(cell_2_source, "constants", "exec"), scope)
 
-    def test_success_record_with_missing_metadata_is_incomplete(self):
-        stats = dict(testbed={}, run_summary={"evaluated_papers": 1}, memory={"sample_count": 1},
-                     storage={}, phase_breakdown_s={}, failed_papers=[],
-                     paper_records=[dict(arxiv_id="2506.00001", status="SUCCESS", raw_bytes=1, extracted_bytes=1)])
-        rows = self.s["measured_rows"](stats, ["2506.00001"], self.root)
-        self.assertEqual(rows["2506.00001"]["outcome"], "INCOMPLETE")
+        campaign = scope["CAMPAIGN"]
+        self.assertEqual(campaign["total_papers"], 20000)
+        self.assertAlmostEqual(campaign["calendar_span_h"], 70.12, places=2)
+        self.assertAlmostEqual(campaign["machine_hours_total"], 49.19, places=2)
+        self.assertAlmostEqual(campaign["per_paper_s"], 8.1657, places=4)
+        self.assertAlmostEqual(campaign["peak_rss_mib"], 51.22, places=2)
+        self.assertAlmostEqual(campaign["savings_pct"], 92.612, places=3)
+        self.assertEqual(campaign["s2_429_count"], 22238)
 
-    def test_all_20000_ids_and_800_blocks_from_report(self):
-        report = ROOT.parent / "arXiv-Report"
-        if not report.is_dir():
-            self.skipTest("Sibling report repository needed for actual manifest audit")
-        groups, contract, manifest = self.s["read_manifest"](report)
-        self.assertEqual(len(groups), 800)
-        self.assertEqual(sum(map(len, groups.values())), 20000)
-        self.assertEqual(len(set(manifest.decode().splitlines())), 20000)
-        self.assertEqual(contract["id_list_sha256"], hashlib.sha256(manifest).hexdigest())
+        outcomes = scope["OUTCOMES"]
+        self.assertEqual(outcomes["SUCCESS"], 18287)
+        self.assertEqual(outcomes["PDF_ONLY"], 1711)
+        self.assertEqual(outcomes["INCOMPLETE"], 2)
+        self.assertEqual(outcomes["FAILED"], 0)
 
-    def test_git_compare_and_swap_recomputes_after_competing_commit(self):
-        def git(*args):
-            return subprocess.check_output(["git", *map(str, args)], stderr=subprocess.DEVNULL, text=True).strip()
-        bare, seed = self.root / "remote.git", self.root / "seed"
-        git("init", "--bare", bare)
-        git("init", seed)
-        git("-C", seed, "config", "user.email", "test@example.invalid")
-        git("-C", seed, "config", "user.name", "Test")
-        git("-C", seed, "commit", "--allow-empty", "-m", "seed")
-        git("-C", seed, "push", bare, "HEAD:refs/heads/main")
-        base = git("-C", seed, "rev-parse", "HEAD")
-        cls = self.s["GitJournal"]
-        a, b = cls(self.root/"a", bare, "results", base), cls(self.root/"b", bare, "results", base)
-        calls = []
-        def competing_edit(repo):
-            calls.append(True)
-            if len(calls) == 1:
-                b.update("other worker", lambda _: (None, {"b.txt": b"other"}))
-            return None, {"a.txt": b"mine"}
-        with patch("time.sleep"):
-            a.update("worker a", competing_edit)
-        a.refresh()
-        self.assertGreaterEqual(len(calls), 2)
-        self.assertEqual((a.path/self.s["BASE"]/"a.txt").read_bytes(), b"mine")
-        self.assertEqual((a.path/self.s["BASE"]/"b.txt").read_bytes(), b"other")
+        partitions = scope["PARTITIONS"]
+        self.assertEqual(len(partitions), 4)
+        for name, p in partitions.items():
+            self.assertEqual(p["success"] + p["pdf_only"] + p["incomplete"], 5000)
+
+        baseline = scope["BASELINE"]
+        self.assertEqual(baseline["n_papers"], 100)
+        self.assertAlmostEqual(baseline["avg_per_paper_s"], 13.42, places=2)
+        self.assertAlmostEqual(baseline["median_per_paper_s"], 6.98, places=2)
+
+        parallel = scope["PARALLEL_100"]
+        self.assertEqual(parallel["n_papers"], 100)
+        self.assertAlmostEqual(parallel["avg_per_paper_s"], 5.69, places=2)
+        self.assertAlmostEqual(parallel["speedup"], 2.36, places=2)
+
+    def test_no_forbidden_patterns(self):
+        for i, cell in enumerate(self.cells):
+            source = "".join(cell.get("source", []))
+            self.assertFalse(
+                re.search(r"^\s*(from|import)\s+src\b", source, re.MULTILINE),
+                f"Cell {i+1} imports from src/"
+            )
+            self.assertNotIn("/home/domi1712", source, f"Cell {i+1} has hardcoded absolute path")
+            self.assertNotIn("/Users/", source, f"Cell {i+1} has hardcoded absolute path")
+
+    def test_pre_executed_outputs_present(self):
+        code_indices = [6, 7, 8, 9]  # Cells 7, 8, 9, 10
+        for idx in code_indices:
+            cell = self.cells[idx]
+            outputs = cell.get("outputs", [])
+            self.assertGreater(len(outputs), 0, f"Cell {idx+1} has no pre-executed output")
+            for out in outputs:
+                self.assertNotEqual(out.get("output_type"), "error", f"Cell {idx+1} has error output: {out}")
+
+        # Cells 7, 8, 9 must contain image/png
+        for idx in [6, 7, 8]:
+            cell = self.cells[idx]
+            has_png = any("image/png" in out.get("data", {}) for out in cell.get("outputs", []))
+            self.assertTrue(has_png, f"Cell {idx+1} must contain image/png output")
+
+        # Cell 10 must contain markdown/html table output
+        cell_10 = self.cells[9]
+        has_table = any(
+            out.get("name") == "stdout" or "text/html" in out.get("data", {}) or "text/plain" in out.get("data", {})
+            for out in cell_10.get("outputs", [])
+        )
+        self.assertTrue(has_table, "Cell 10 must contain table output")
+
+    def test_sibling_report_sync(self):
+        report_nb = ROOT.parent / "arXiv-Report/milestone1/performance.ipynb"
+        if not report_nb.is_file():
+            self.skipTest("arXiv-Report sibling repository not found")
+        data = json.loads(report_nb.read_text(encoding="utf-8"))
+        self.assertEqual(len(data.get("cells", [])), 13)
+        for i in range(13):
+            self.assertEqual(
+                data["cells"][i]["cell_type"],
+                self.cells[i]["cell_type"],
+                f"Mismatch in cell {i+1} type between report and project notebooks"
+            )
 
 
 if __name__ == "__main__":
