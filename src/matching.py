@@ -217,9 +217,33 @@ def detect_roman_mismatch(title_a: str, title_b: str) -> bool:
     return False
 
 
+def _extract_eprint_id(citation_entry: Dict[str, Any]) -> Optional[str]:
+    """Extract arXiv ID from eprint, url, journal, or note field if present."""
+    raw_eprint = citation_entry.get("eprint")
+    if raw_eprint:
+        m = re.search(r"([0-9]{4}\.[0-9]{4,5})", str(raw_eprint))
+        if m:
+            return m.group(1)
+
+    url = citation_entry.get("url", "")
+    if url:
+        m = re.search(r"arxiv(?:\.org/(?:abs|pdf)/|:\s*)([0-9]{4}\.[0-9]{4,5})", str(url), re.IGNORECASE)
+        if m:
+            return m.group(1)
+
+    for field in ["journal", "note"]:
+        val = citation_entry.get(field, "")
+        if val:
+            m = re.search(r"arxiv(?:\.org/(?:abs|pdf)/|:\s*)([0-9]{4}\.[0-9]{4,5})", str(val), re.IGNORECASE)
+            if m:
+                return m.group(1)
+
+    return None
+
+
 class CitationMatcher:
     """Hybrid Citation Matcher combining raw sequence matching, char n-gram TF-IDF,
-    author surname overlap, year delta, and Roman numeral tie-breaking.
+    author surname overlap, year delta, Roman numeral tie-breaking, and arXiv eprint priority.
     """
 
     def __init__(
@@ -229,12 +253,14 @@ class CitationMatcher:
         weight_author: float = 0.20,
         weight_year: float = 0.10,
         penalty_roman: float = 0.35,
+        threshold: float = 0.75,
     ) -> None:
         self.weight_raw = weight_raw
         self.weight_ngram = weight_ngram
         self.weight_author = weight_author
         self.weight_year = weight_year
         self.penalty_roman = penalty_roman
+        self.threshold = threshold
 
     def compute_hybrid_score(
         self,
@@ -304,13 +330,31 @@ class CitationMatcher:
         top_k: int = 5,
         require_arxiv_id: bool = True,
     ) -> List[List[Optional[str]]]:
-        """Rank candidates for each citation entry and return top_k arXiv IDs.
+        """Rank candidates for each citation entry and return top_k arXiv IDs."""
+        ranked_records = self.match_and_label(
+            citation_entries=citation_entries,
+            candidate_pool=candidate_pool,
+            top_k=top_k,
+            threshold=self.threshold,
+            require_arxiv_id=require_arxiv_id,
+        )
+        return [[r[f"cand_{i}"] for i in range(1, top_k + 1)] for r in ranked_records]
+
+    def match_and_label(
+        self,
+        citation_entries: List[Dict[str, Any]],
+        candidate_pool: List[Dict[str, Any]],
+        top_k: int = 5,
+        threshold: float = 0.75,
+        require_arxiv_id: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Rank candidates and assign label using threshold and arXiv eprint priority.
         
-        Args:
-            citation_entries: List of citation dictionaries (title, authors, year).
-            candidate_pool: Candidate references from Semantic Scholar or metadata.
-            top_k: Number of ranked candidate arXiv IDs to return.
-            require_arxiv_id: When True, filters candidate pool to entries with valid arXiv IDs.
+        Rules:
+            1. If citation contains a recognized arXiv ID (eprint) matching a candidate in pool,
+               that candidate is assigned directly with highest priority (score >= 1.0).
+            2. Otherwise, hybrid score is calculated across candidate pool.
+            3. cand_1 score >= threshold -> assigned_label = cand_1, else 'none'.
         """
         # Build candidate pool to rank
         pool_to_rank = candidate_pool
@@ -323,28 +367,59 @@ class CitationMatcher:
         candidate_titles = [c.get("ref_title", "") for c in pool_to_rank if c.get("ref_title")]
         idf_dict = build_idf_dict(candidate_titles) if candidate_titles else None
 
-        ranked_results: List[List[Optional[str]]] = []
+        results: List[Dict[str, Any]] = []
         for c in citation_entries:
+            eprint_id = _extract_eprint_id(c)
             scores: List[Tuple[Optional[str], float]] = []
+
             for cand in pool_to_rank:
-                score = self.compute_hybrid_score(
-                    bib_title=c.get("title", ""),
-                    bib_authors=c.get("authors", []),
-                    bib_year=c.get("year"),
-                    ref_title=cand.get("ref_title", ""),
-                    ref_authors=cand.get("ref_authors", []),
-                    ref_year=cand.get("ref_year"),
-                    idf_dict=idf_dict,
-                )
-                scores.append((cand.get("ref_arxiv_id"), score))
+                cand_aid = cand.get("ref_arxiv_id")
+
+                # Fallback ref_year parsing from ref_submission_date if not present
+                cand_year = cand.get("ref_year")
+                if cand_year is None and cand.get("ref_submission_date"):
+                    try:
+                        cand_year = int(str(cand["ref_submission_date"])[:4])
+                    except (ValueError, TypeError):
+                        cand_year = None
+
+                # Rule 1: Direct eprint match priority
+                if eprint_id and cand_aid and cand_aid == eprint_id:
+                    score = 2.0  # Guarantees rank 1
+                else:
+                    score = self.compute_hybrid_score(
+                        bib_title=c.get("title", ""),
+                        bib_authors=c.get("authors", []),
+                        bib_year=c.get("year"),
+                        ref_title=cand.get("ref_title", ""),
+                        ref_authors=cand.get("ref_authors", []),
+                        ref_year=cand_year,
+                        idf_dict=idf_dict,
+                    )
+                scores.append((cand_aid, score))
 
             scores.sort(key=lambda x: x[1], reverse=True)
-            top_ids: List[Optional[str]] = [s[0] for s in scores[:top_k]]
-            while len(top_ids) < top_k:
-                top_ids.append(None)
-            ranked_results.append(top_ids)
+            top_cands = scores[:top_k]
+            top_score = top_cands[0][1] if top_cands else 0.0
+            top_cand_1 = top_cands[0][0] if top_cands else None
 
-        return ranked_results
+            # Rule 2: Thresholding (cand_1 >= threshold -> cand_1, else 'none')
+            if top_score >= threshold and top_cand_1:
+                assigned_label = top_cand_1
+            else:
+                assigned_label = "none"
+
+            record: Dict[str, Any] = {
+                "assigned_label": assigned_label,
+                "top_score": float(top_score),
+            }
+            for i in range(1, top_k + 1):
+                record[f"cand_{i}"] = top_cands[i - 1][0] if (i - 1 < len(top_cands)) else None
+                record[f"score_{i}"] = float(top_cands[i - 1][1]) if (i - 1 < len(top_cands)) else 0.0
+
+            results.append(record)
+
+        return results
 
 
 def evaluate_mrr_at_k(

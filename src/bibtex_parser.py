@@ -126,6 +126,20 @@ def parse_bib_file(bib_path: Path | str, arxiv_id: str) -> List[Dict[str, Any]]:
         if m_doi:
             doi = m_doi.group(1).rstrip('.,;)]')
 
+        # Eprint / arXiv ID extraction
+        eprint: Optional[str] = None
+        raw_eprint = fields.get("eprint", fields.get("arxivid", fields.get("archiveprefix", "")))
+        m_eprint = re.search(r'(?:^|\b|arxiv(?:\.org/(?:abs|pdf)/|:\s*)|eprint\s*[:={]\s*)([0-9]{4}\.[0-9]{4,5})', str(raw_eprint), re.IGNORECASE)
+        if m_eprint:
+            eprint = m_eprint.group(1)
+        else:
+            # Check url, journal, or note for arxiv id
+            for f_check in [fields.get("url", ""), fields.get("journal", ""), fields.get("note", "")]:
+                m_check = re.search(r'arxiv(?:\.org/(?:abs|pdf)/|:\s*)([0-9]{4}\.[0-9]{4,5})', str(f_check), re.IGNORECASE)
+                if m_check:
+                    eprint = m_check.group(1)
+                    break
+
         title = clean_latex_markup(fields.get("title", ""))
         raw_journal = fields.get("journal", fields.get("booktitle", fields.get("venue", "")))
         journal = strings.get(raw_journal.lower(), clean_latex_markup(raw_journal))
@@ -141,9 +155,65 @@ def parse_bib_file(bib_path: Path | str, arxiv_id: str) -> List[Dict[str, Any]]:
             "doi": str(doi) if doi else None,
             "journal": str(journal) if journal else None,
             "url": str(url) if url else None,
+            "eprint": str(eprint) if eprint else None,
         })
 
     return entries
+
+
+def extract_bibitem_title(body: str) -> str:
+    """Robust extraction of title from \\bibitem body, handling initials and missing markup."""
+    # 0. Check \newblock delimiters (standard LaTeX bibitem formatting)
+    blocks = re.split(r'\\newblock\s*', body)
+    if len(blocks) >= 3:
+        cand = blocks[2].strip()
+        cand = re.split(r'\\newblock|\.', cand)[0].strip()
+        cand_clean = clean_latex_markup(cand)
+        if len(cand_clean) > 5 and not cand_clean.lower().startswith(('in ', 'proceedings', 'http')):
+            return cand_clean
+
+    # 1. Check double quotes ``title'' or "title"
+    m_quote = re.search(r'(?:``|"|\'\')\s*([^"\'`\n]+?)\s*(?:[\'"`]{1,2}|,)', body)
+    if m_quote and len(m_quote.group(1).strip()) > 8:
+        cand_clean = clean_latex_markup(m_quote.group(1).strip())
+        if len(cand_clean) > 8:
+            return cand_clean
+
+    # 2. Check \textit or \emph
+    for m in re.finditer(r'\\(?:textit|emph)\{([^}]+)\}', body):
+        cand = clean_latex_markup(m.group(1).strip())
+        cand_lower = cand.lower()
+        if not any(v in cand_lower for v in ['proceedings', 'proc.', 'conference', 'ieee', 'acm', 'springer', 'arxiv', 'cvpr', 'neurips', 'icml', 'iclr', 'nips', 'nature', 'science', 'vol.', 'pp.', 'pages']):
+            if len(cand) > 10:
+                return cand
+
+    # 3. Check colon after authors, e.g. "Author, A., Author, B.: Title of paper."
+    m_colon = re.search(r'^[A-Z][^:]{5,120}:\s*([^.]+)\.', body)
+    if m_colon and len(m_colon.group(1).strip()) > 8:
+        return clean_latex_markup(m_colon.group(1).strip())
+
+    # 4. Check year parenthesized: "Author (2020). Title."
+    m_year_par = re.search(r'\((?:19|20)\d\d[a-z]?\)\.?\s+([^\.\n]+)\.', body)
+    if m_year_par and len(m_year_par.group(1).strip()) > 8:
+        return clean_latex_markup(m_year_par.group(1).strip())
+
+    # 5. Regex split on sentence boundary (ignoring initials like A., B., M.-H., but splitting on et al.)
+    clean = clean_latex_markup(body)
+    parts = re.split(r'(?:(?<!\b[A-Za-z])\.|et al\.?)\s+', clean)
+    valid_parts = [p.strip() for p in parts if len(p.strip()) > 2 and p.strip().lower() not in ['et al', 'k', 'jr']]
+    
+    # First part is authors. Find the first non-author part as title
+    for p in valid_parts[1:]:
+        p_clean = p.strip()
+        if len(p_clean) < 6:
+            continue
+        if p_clean.lower().startswith(('in ', 'in:', 'pp.', 'vol.', 'pages', 'http', 'doi:', 'arxiv')):
+            continue
+        if re.search(r'^[A-Z]\.?\s+[A-Z][a-z]+$', p_clean): # single author name
+            continue
+        return p_clean
+
+    return valid_parts[1] if len(valid_parts) > 1 else clean[:100]
 
 
 def parse_tex_bibitem(tex_path: Path | str, arxiv_id: str) -> List[Dict[str, Any]]:
@@ -178,25 +248,20 @@ def parse_tex_bibitem(tex_path: Path | str, arxiv_id: str) -> List[Dict[str, Any
         if m_url:
             url = m_url.group(1).rstrip('.,;)]')
 
+        # Eprint / arXiv ID extraction
+        eprint: Optional[str] = None
+        m_eprint = re.search(r'(?:arxiv(?:\.org/(?:abs|pdf)/|:\s*)|eprint\s*[:={]\s*)([0-9]{4}\.[0-9]{4,5})', body, re.IGNORECASE)
+        if m_eprint:
+            eprint = m_eprint.group(1)
+
         # Year
         year: Optional[int] = None
         m_year = re.search(r'\b(19\d\d|20\d\d)\b', body)
         if m_year:
             year = int(m_year.group(1))
 
-        # Title heuristic
-        title = ""
-        m_title = re.search(r'\\(?:emph|textit)\{([^}]*)\}', body)
-        if m_title:
-            title = clean_latex_markup(m_title.group(1))
-        else:
-            m_quote = re.search(r'``([^\'\']*)[\'\'"]', body)
-            if m_quote:
-                title = clean_latex_markup(m_quote.group(1))
-            else:
-                cleaned_body = clean_latex_markup(body)
-                parts = cleaned_body.split('.')
-                title = parts[1].strip() if len(parts) > 1 else cleaned_body[:120].strip()
+        # Title extraction
+        title = extract_bibitem_title(body)
 
         # Authors heuristic
         authors: List[str] = []
@@ -217,6 +282,7 @@ def parse_tex_bibitem(tex_path: Path | str, arxiv_id: str) -> List[Dict[str, Any
             "doi": str(doi) if doi else None,
             "journal": None,
             "url": str(url) if url else None,
+            "eprint": str(eprint) if eprint else None,
         })
 
     return entries

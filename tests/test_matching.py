@@ -88,6 +88,48 @@ class TestMatching(unittest.TestCase):
         self.assertEqual(metrics["mrr@5"], 1.0)
         self.assertEqual(metrics["hit@1"], 1.0)
 
+    def test_ref_year_fallback_from_submission_date(self):
+        c = [{"title": "BERT: Pre-training", "authors": ["Devlin"], "year": 2018}]
+        pool = [
+            # ref_year is None, only ref_submission_date exists
+            {"ref_title": "BERT: Pre-training", "ref_authors": ["Devlin"], "ref_submission_date": "2018-10-11", "ref_arxiv_id": "1810.04805"}
+        ]
+        matcher = CitationMatcher()
+        labels = matcher.match_and_label(c, pool, top_k=1, threshold=0.75)
+        self.assertEqual(labels[0]["assigned_label"], "1810.04805")
+        self.assertGreaterEqual(labels[0]["top_score"], 0.75)
+
+    def test_eprint_priority_and_thresholding(self):
+        # Entry 1: Has eprint matching candidate in pool
+        # Entry 2: Irrelevant paper with low score -> assigned 'none'
+        citations = [
+            {
+                "title": "A slightly distorted title without author match",
+                "authors": ["Unknown"],
+                "year": 2010,
+                "eprint": "1706.03762"
+            },
+            {
+                "title": "Completely irrelevant biology paper on genetics",
+                "authors": ["Watson"],
+                "year": 1953
+            }
+        ]
+        pool = [
+            {"ref_title": "Attention Is All You Need", "ref_authors": ["Vaswani"], "ref_arxiv_id": "1706.03762"},
+            {"ref_title": "Deep Learning", "ref_authors": ["LeCun"], "ref_arxiv_id": "1500.00000"}
+        ]
+        matcher = CitationMatcher()
+        results = matcher.match_and_label(citations, pool, top_k=2, threshold=0.75)
+        
+        # Entry 1 should match 1706.03762 via eprint priority
+        self.assertEqual(results[0]["assigned_label"], "1706.03762")
+        self.assertEqual(results[0]["cand_1"], "1706.03762")
+        
+        # Entry 2 should be assigned 'none' because score is < 0.75
+        self.assertEqual(results[1]["assigned_label"], "none")
+        self.assertLess(results[1]["top_score"], 0.75)
+
 
 if __name__ == "__main__":
     unittest.main()
