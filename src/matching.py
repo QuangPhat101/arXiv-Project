@@ -1,131 +1,46 @@
 """Citation Matching Model & Evaluation Module.
 
-Implements Hybrid Citation Matching combining:
-1. Raw sequence matching (SequenceMatcher) - captures contiguous word/char ordering.
-2. Character n-gram TF-IDF cosine similarity - robust against word reordering, typos, spacing.
-3. Author surname overlap (Jaccard similarity).
-4. Publication year delta scoring (with tolerance for preprint vs publication latency).
-5. Roman numeral / Part mismatch penalty (e.g. Part I vs Part II).
+Assigned to: Bảo (Pipeline Prep) & Khôi (Baseline Modeling)
+Purpose:
+    Match LaTeX/BibTeX citation keys to real arXiv IDs using feature engineering
+    (title token similarity, author surname overlap, publication year delta)
+    and evaluate Mean Reciprocal Rank (MRR@5) and Hit@K.
 """
 
 from __future__ import annotations
 
-import difflib
 import math
 import re
 from collections import Counter
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-ROMAN_NUMERALS: Dict[str, int] = {
-    "i": 1,
-    "ii": 2,
-    "iii": 3,
-    "iv": 4,
-    "v": 5,
-    "vi": 6,
-    "vii": 7,
-    "viii": 8,
-    "ix": 9,
-    "x": 10,
-}
 
 
 def normalize_title(text: str) -> str:
     """Lowercase and strip non-alphanumeric characters for clean string matching."""
     if not text:
         return ""
-    text = re.sub(r"[^a-zA-Z0-9\s]", " ", str(text).lower())
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', str(text).lower())
     return " ".join(text.split())
 
 
-def compute_raw_similarity(title_a: str, title_b: str) -> float:
-    """Compute character-level raw sequence similarity using difflib.SequenceMatcher.
-    
-    Preserves strict word ordering and character sequence contiguity.
-    """
-    norm_a = normalize_title(title_a)
-    norm_b = normalize_title(title_b)
-    if not norm_a or not norm_b:
+def extract_last_names(authors: List[str]) -> Set[str]:
+    """Extract set of normalized lowercase surnames from author strings."""
+    surnames = set()
+    for a in authors:
+        a_clean = re.sub(r'[^a-zA-Z\s]', '', str(a).strip())
+        tokens = a_clean.split()
+        if tokens:
+            surnames.add(tokens[-1].lower())
+    return surnames
+
+
+def compute_author_overlap(authors_a: List[str], authors_b: List[str]) -> float:
+    """Compute Jaccard similarity of author last names."""
+    set_a = extract_last_names(authors_a)
+    set_b = extract_last_names(authors_b)
+    if not set_a or not set_b:
         return 0.0
-    if norm_a == norm_b:
-        return 1.0
-    return float(difflib.SequenceMatcher(None, norm_a, norm_b).ratio())
-
-
-def extract_char_ngrams(text: str, n_min: int = 3, n_max: int = 4) -> Counter:
-    """Extract character n-grams from normalized text."""
-    norm = normalize_title(text)
-    if not norm:
-        return Counter()
-    if len(norm) < n_min:
-        return Counter([norm])
-
-    ngrams: List[str] = []
-    for n in range(n_min, n_max + 1):
-        if len(norm) >= n:
-            ngrams.extend(norm[i : i + n] for i in range(len(norm) - n + 1))
-    return Counter(ngrams)
-
-
-def build_idf_dict(corpus_titles: List[str], n_min: int = 3, n_max: int = 4) -> Dict[str, float]:
-    """Compute smooth inverse document frequency (IDF) for char n-grams over corpus titles."""
-    num_docs = len(corpus_titles)
-    if num_docs == 0:
-        return {}
-
-    df_counter: Counter = Counter()
-    for t in corpus_titles:
-        unique_ngrams = set(extract_char_ngrams(t, n_min, n_max).keys())
-        df_counter.update(unique_ngrams)
-
-    idf_dict: Dict[str, float] = {}
-    for ngram, df in df_counter.items():
-        # Standard smoothed IDF: ln((1 + N) / (1 + df)) + 1.0
-        idf_dict[ngram] = math.log((1.0 + num_docs) / (1.0 + df)) + 1.0
-
-    return idf_dict
-
-
-def compute_char_ngram_similarity(
-    title_a: str,
-    title_b: str,
-    n_min: int = 3,
-    n_max: int = 4,
-    idf_dict: Optional[Dict[str, float]] = None,
-) -> float:
-    """Compute TF-IDF cosine similarity using character n-grams (3-gram to 4-gram).
-    
-    Robust to word reordering, missing whitespaces ('Qwen2. 5' vs 'Qwen2.5'), and typos.
-    Downweights common stop-patterns when idf_dict is provided.
-    """
-    count_a = extract_char_ngrams(title_a, n_min, n_max)
-    count_b = extract_char_ngrams(title_b, n_min, n_max)
-
-    if not count_a or not count_b:
-        return 0.0
-
-    # Build weighted vectors
-    vec_a: Dict[str, float] = {}
-    for k, count in count_a.items():
-        weight = float(count) * (idf_dict.get(k, 1.0) if idf_dict else 1.0)
-        vec_a[k] = weight
-
-    vec_b: Dict[str, float] = {}
-    for k, count in count_b.items():
-        weight = float(count) * (idf_dict.get(k, 1.0) if idf_dict else 1.0)
-        vec_b[k] = weight
-
-    common = set(vec_a.keys()) & set(vec_b.keys())
-    if not common:
-        return 0.0
-
-    dot_product = sum(vec_a[k] * vec_b[k] for k in common)
-    mag_a = math.sqrt(sum(v * v for v in vec_a.values()))
-    mag_b = math.sqrt(sum(v * v for v in vec_b.values()))
-
-    if mag_a == 0.0 or mag_b == 0.0:
-        return 0.0
-    return float(min(1.0, dot_product / (mag_a * mag_b)))
+    return len(set_a & set_b) / len(set_a | set_b)
 
 
 def compute_token_cosine_similarity(text_a: str, text_b: str) -> float:
@@ -149,158 +64,8 @@ def compute_token_cosine_similarity(text_a: str, text_b: str) -> float:
     return float(dot_product / (mag_a * mag_b))
 
 
-def extract_last_names(authors: List[str]) -> Set[str]:
-    """Extract set of normalized lowercase surnames from author strings."""
-    surnames = set()
-    for a in authors:
-        a_clean = re.sub(r"[^a-zA-Z\s]", "", str(a).strip())
-        tokens = a_clean.split()
-        if tokens:
-            surnames.add(tokens[-1].lower())
-    return surnames
-
-
-def compute_author_overlap(authors_a: List[str], authors_b: List[str]) -> float:
-    """Compute Jaccard similarity of author last names."""
-    set_a = extract_last_names(authors_a)
-    set_b = extract_last_names(authors_b)
-    if not set_a or not set_b:
-        return 0.0
-    return float(len(set_a & set_b) / len(set_a | set_b))
-
-
-def compute_year_score(year_a: Optional[int], year_b: Optional[int]) -> float:
-    """Score publication year agreement with soft tolerance for preprint vs conference delay."""
-    if year_a is None or year_b is None:
-        return 0.5  # Neutral fallback when publication year is missing
-
-    diff = abs(int(year_a) - int(year_b))
-    if diff == 0:
-        return 1.0
-    if diff == 1:
-        return 0.90  # 1-year discrepancy is common between arXiv preprint and conference proceedings
-    if diff == 2:
-        return 0.60
-    return float(max(0.0, 1.0 - 0.20 * diff))
-
-
-def _extract_part_numbers(title: str) -> Set[int]:
-    """Extract Part/Volume/Phase numerical indicators (both Roman and Arabic) from title."""
-    parts = set()
-    norm = str(title).lower()
-
-    # Match patterns like 'part i', 'part 2', 'volume iii', 'phase 1'
-    for match in re.finditer(r"\b(?:part|volume|vol|phase)\s*([ivx\d]+)\b", norm):
-        val = match.group(1).strip()
-        if val in ROMAN_NUMERALS:
-            parts.add(ROMAN_NUMERALS[val])
-        elif val.isdigit():
-            parts.add(int(val))
-
-    # Match standalone Roman numerals at end of title or after delimiters (: -)
-    for match in re.finditer(r"(?:[:\-–—\s]|^)\s*([ivx]+)\s*$", norm):
-        val = match.group(1).strip()
-        if val in ROMAN_NUMERALS:
-            parts.add(ROMAN_NUMERALS[val])
-
-    return parts
-
-
-def detect_roman_mismatch(title_a: str, title_b: str) -> bool:
-    """Detect if title_a and title_b have contradictory Part/Volume Roman numerals."""
-    parts_a = _extract_part_numbers(title_a)
-    parts_b = _extract_part_numbers(title_b)
-
-    if parts_a and parts_b:
-        # Both specify a part number, check for disjoint contradiction
-        return not bool(parts_a & parts_b)
-    return False
-
-
-def _extract_eprint_id(citation_entry: Dict[str, Any]) -> Optional[str]:
-    """Extract arXiv ID from eprint, url, journal, or note field if present."""
-    raw_eprint = citation_entry.get("eprint")
-    if raw_eprint:
-        m = re.search(r"([0-9]{4}\.[0-9]{4,5})", str(raw_eprint))
-        if m:
-            return m.group(1)
-
-    url = citation_entry.get("url", "")
-    if url:
-        m = re.search(r"arxiv(?:\.org/(?:abs|pdf)/|:\s*)([0-9]{4}\.[0-9]{4,5})", str(url), re.IGNORECASE)
-        if m:
-            return m.group(1)
-
-    for field in ["journal", "note"]:
-        val = citation_entry.get(field, "")
-        if val:
-            m = re.search(r"arxiv(?:\.org/(?:abs|pdf)/|:\s*)([0-9]{4}\.[0-9]{4,5})", str(val), re.IGNORECASE)
-            if m:
-                return m.group(1)
-
-    return None
-
-
 class CitationMatcher:
-    """Hybrid Citation Matcher combining raw sequence matching, char n-gram TF-IDF,
-    author surname overlap, year delta, Roman numeral tie-breaking, and arXiv eprint priority.
-    """
-
-    def __init__(
-        self,
-        weight_raw: float = 0.35,
-        weight_ngram: float = 0.35,
-        weight_author: float = 0.20,
-        weight_year: float = 0.10,
-        penalty_roman: float = 0.35,
-        threshold: float = 0.75,
-    ) -> None:
-        self.weight_raw = weight_raw
-        self.weight_ngram = weight_ngram
-        self.weight_author = weight_author
-        self.weight_year = weight_year
-        self.penalty_roman = penalty_roman
-        self.threshold = threshold
-
-    def compute_hybrid_score(
-        self,
-        bib_title: str,
-        bib_authors: List[str],
-        bib_year: Optional[int],
-        ref_title: str,
-        ref_authors: List[str],
-        ref_year: Optional[int],
-        idf_dict: Optional[Dict[str, float]] = None,
-    ) -> float:
-        """Compute composite hybrid score between a citation entry and a candidate reference."""
-        # 1. Raw string SequenceMatcher
-        raw_sim = compute_raw_similarity(bib_title, ref_title)
-
-        # 2. Character n-gram TF-IDF cosine similarity
-        ngram_sim = compute_char_ngram_similarity(bib_title, ref_title, idf_dict=idf_dict)
-
-        # 3. Author surname Jaccard overlap
-        author_sim = compute_author_overlap(bib_authors, ref_authors)
-
-        # 4. Publication year agreement score
-        year_score = compute_year_score(bib_year, ref_year)
-
-        # 5. Roman numeral / Part mismatch penalty
-        is_roman_conflict = detect_roman_mismatch(bib_title, ref_title)
-        roman_penalty = self.penalty_roman if is_roman_conflict else 0.0
-
-        # Exact title shortcut bonus
-        exact_bonus = 0.10 if (raw_sim >= 0.98 and ngram_sim >= 0.98) else 0.0
-
-        total_score = (
-            self.weight_raw * raw_sim
-            + self.weight_ngram * ngram_sim
-            + self.weight_author * author_sim
-            + self.weight_year * year_score
-            + exact_bonus
-            - roman_penalty
-        )
-        return float(total_score)
+    """Baseline Citation Matcher with weighted heuristic ranking."""
 
     def extract_features(
         self,
@@ -311,122 +76,58 @@ class CitationMatcher:
         ref_authors: List[str],
         ref_year: Optional[int],
     ) -> List[float]:
-        """Feature extraction for backward compatibility and analysis."""
-        norm_bib = normalize_title(bib_title)
-        norm_ref = normalize_title(ref_title)
-        exact_match = 1.0 if (norm_bib and norm_bib == norm_ref) else 0.0
-        raw_sim = compute_raw_similarity(bib_title, ref_title)
-        ngram_sim = compute_char_ngram_similarity(bib_title, ref_title)
-        author_sim = compute_author_overlap(bib_authors, ref_authors)
-        year_score = compute_year_score(bib_year, ref_year)
-        roman_mismatch = 1.0 if detect_roman_mismatch(bib_title, ref_title) else 0.0
+        """Compute 4 core matching features between a citation entry and a reference."""
+        norm_bib_title = normalize_title(bib_title)
+        norm_ref_title = normalize_title(ref_title)
 
-        return [exact_match, raw_sim, ngram_sim, author_sim, year_score, roman_mismatch]
+        # 1. Exact title match flag
+        exact_match = 1.0 if (norm_bib_title and norm_bib_title == norm_ref_title) else 0.0
+
+        # 2. Token cosine similarity
+        cosine_sim = compute_token_cosine_similarity(norm_bib_title, norm_ref_title)
+
+        # 3. Author last name overlap
+        author_sim = compute_author_overlap(bib_authors, ref_authors)
+
+        # 4. Normalized year diff
+        year_diff = 1.0
+        if bib_year and ref_year:
+            year_diff = min(abs(bib_year - ref_year) / 10.0, 1.0)
+
+        return [exact_match, cosine_sim, author_sim, year_diff]
 
     def rank_candidates(
         self,
         citation_entries: List[Dict[str, Any]],
         candidate_pool: List[Dict[str, Any]],
         top_k: int = 5,
-        require_arxiv_id: bool = True,
-    ) -> List[List[Optional[str]]]:
+    ) -> List[List[str]]:
         """Rank candidates for each citation entry and return top_k arXiv IDs."""
-        ranked_records = self.match_and_label(
-            citation_entries=citation_entries,
-            candidate_pool=candidate_pool,
-            top_k=top_k,
-            threshold=self.threshold,
-            require_arxiv_id=require_arxiv_id,
-        )
-        return [[r[f"cand_{i}"] for i in range(1, top_k + 1)] for r in ranked_records]
-
-    def match_and_label(
-        self,
-        citation_entries: List[Dict[str, Any]],
-        candidate_pool: List[Dict[str, Any]],
-        top_k: int = 5,
-        threshold: float = 0.75,
-        require_arxiv_id: bool = True,
-    ) -> List[Dict[str, Any]]:
-        """Rank candidates and assign label using threshold and arXiv eprint priority.
-        
-        Rules:
-            1. If citation contains a recognized arXiv ID (eprint) matching a candidate in pool,
-               that candidate is assigned directly with highest priority (score >= 1.0).
-            2. Otherwise, hybrid score is calculated across candidate pool.
-            3. cand_1 score >= threshold -> assigned_label = cand_1, else 'none'.
-        """
-        # Build candidate pool to rank
-        pool_to_rank = candidate_pool
-        if require_arxiv_id:
-            valid_pool = [c for c in candidate_pool if c.get("ref_arxiv_id")]
-            if valid_pool:
-                pool_to_rank = valid_pool
-
-        # Precompute IDF dictionary over candidate titles
-        candidate_titles = [c.get("ref_title", "") for c in pool_to_rank if c.get("ref_title")]
-        idf_dict = build_idf_dict(candidate_titles) if candidate_titles else None
-
-        results: List[Dict[str, Any]] = []
+        ranked_results = []
         for c in citation_entries:
-            eprint_id = _extract_eprint_id(c)
-            scores: List[Tuple[Optional[str], float]] = []
-
-            for cand in pool_to_rank:
-                cand_aid = cand.get("ref_arxiv_id")
-
-                # Fallback ref_year parsing from ref_submission_date if not present
-                cand_year = cand.get("ref_year")
-                if cand_year is None and cand.get("ref_submission_date"):
-                    try:
-                        cand_year = int(str(cand["ref_submission_date"])[:4])
-                    except (ValueError, TypeError):
-                        cand_year = None
-
-                # Rule 1: Direct eprint match priority
-                if eprint_id and cand_aid and cand_aid == eprint_id:
-                    score = 2.0  # Guarantees rank 1
-                else:
-                    score = self.compute_hybrid_score(
-                        bib_title=c.get("title", ""),
-                        bib_authors=c.get("authors", []),
-                        bib_year=c.get("year"),
-                        ref_title=cand.get("ref_title", ""),
-                        ref_authors=cand.get("ref_authors", []),
-                        ref_year=cand_year,
-                        idf_dict=idf_dict,
-                    )
-                scores.append((cand_aid, score))
+            scores = []
+            for cand in candidate_pool:
+                feats = self.extract_features(
+                    bib_title=c.get("title", ""),
+                    bib_authors=c.get("authors", []),
+                    bib_year=c.get("year"),
+                    ref_title=cand.get("ref_title", ""),
+                    ref_authors=cand.get("ref_authors", []),
+                    ref_year=cand.get("ref_year"),
+                )
+                # Weighted score heuristic
+                score = feats[0] * 5.0 + feats[1] * 3.0 + feats[2] * 2.0 - feats[3] * 0.5
+                scores.append((cand.get("ref_arxiv_id"), score))
 
             scores.sort(key=lambda x: x[1], reverse=True)
-            top_cands = scores[:top_k]
-            top_score = top_cands[0][1] if top_cands else 0.0
-            top_cand_1 = top_cands[0][0] if top_cands else None
-
-            # Rule 2: Thresholding (cand_1 >= threshold -> cand_1, else 'none')
-            if top_score >= threshold and top_cand_1:
-                assigned_label = top_cand_1
-            else:
-                assigned_label = "none"
-
-            record: Dict[str, Any] = {
-                "assigned_label": assigned_label,
-                "top_score": float(top_score),
-            }
-            for i in range(1, top_k + 1):
-                record[f"cand_{i}"] = top_cands[i - 1][0] if (i - 1 < len(top_cands)) else None
-                record[f"score_{i}"] = float(top_cands[i - 1][1]) if (i - 1 < len(top_cands)) else 0.0
-
-            results.append(record)
-
-        return results
+            top_ids = [s[0] for s in scores[:top_k]]
+            while len(top_ids) < top_k:
+                top_ids.append(None)
+            ranked_results.append(top_ids)
+        return ranked_results
 
 
-def evaluate_mrr_at_k(
-    predictions: List[List[Optional[str]]],
-    ground_truths: List[Optional[str]],
-    k: int = 5,
-) -> Dict[str, float]:
+def evaluate_mrr_at_k(predictions: List[List[str]], ground_truths: List[Optional[str]], k: int = 5) -> Dict[str, float]:
     """Calculate Mean Reciprocal Rank (MRR@K) and Hit@1, Hit@K."""
     reciprocal_ranks = []
     hit_1 = 0

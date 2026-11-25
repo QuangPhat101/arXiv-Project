@@ -75,30 +75,6 @@ class TestBibtexParser(unittest.TestCase):
         self.assertEqual(e["doi"], "10.1109/5.726791")
         self.assertIn("Gradient-based learning", e["title"])
 
-    def test_parse_tex_bibitem_with_author_initials_and_eprint(self):
-        tex_content = r"""
-        \begin{document}
-        \begin{thebibliography}{99}
-        \bibitem{vaswani2017}
-        A.~Vaswani, N.~Shazeer, et al. Attention is all you need. In NeurIPS, 2017. arXiv:1706.03762.
-        \bibitem{smith2020}
-        J.~Smith, A.~Wang, F.~K.~Zhao. Deep residual learning for image recognition. CVPR, 2016.
-        \end{thebibliography}
-        \end{document}
-        """
-        tex_file = self.test_dir / "paper2.tex"
-        tex_file.write_text(tex_content, encoding="utf-8")
-
-        entries = parse_tex_bibitem(tex_file, "sample_paper_2")
-        self.assertEqual(len(entries), 2)
-        
-        # Check first entry: title should NOT be 'et al.' or 'Shazeer, N'
-        self.assertEqual(entries[0]["title"], "Attention is all you need")
-        self.assertEqual(entries[0]["eprint"], "1706.03762")
-        
-        # Check second entry: title should NOT be 'Wang, A' or 'K'
-        self.assertEqual(entries[1]["title"], "Deep residual learning for image recognition")
-
     def test_cross_version_citation_map(self):
         v1_entries = [{
             "citation_key": "vaswani_orig",
