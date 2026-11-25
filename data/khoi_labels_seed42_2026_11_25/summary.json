@@ -1,0 +1,36 @@
+{
+  "seed": 42,
+  "selection": "sorted eligible IDs then random.Random(42).shuffle; take first 495 with cited titled entries and no M2 errors",
+  "range": [
+    "2506.05788",
+    "2506.10787"
+  ],
+  "max_bib_file_bytes": 5000000,
+  "eligible_before_parse": 4348,
+  "skipped_after_shuffle": {
+    "no_cited_titled_entry": 134
+  },
+  "manual_papers": 5,
+  "manual_entries": 211,
+  "manual_statuses": {
+    "matched": 156,
+    "unresolved": 55
+  },
+  "manual_entries_without_detected_cite": 20,
+  "auto_papers": 495,
+  "auto_entries": 23703,
+  "auto_statuses": {
+    "none": 12985,
+    "matched": 10718
+  },
+  "auto_rules": {
+    "hybrid_score_lt_0.75": 12985,
+    "hybrid_score_ge_0.75": 6447,
+    "explicit_arxiv_id": 4262,
+    "explicit_arxiv_id_multiple_select_best": 9
+  },
+  "matcher_branch_commit": "73f06ee8012cad4173e63535082b33ad63498d68",
+  "threshold": 0.75,
+  "rules": "Explicit arXiv ID from eprint/arXiv URL/prefix in same-paper pool wins; when multiple explicit IDs hit pool, select highest Bao hybrid score among those IDs; otherwise highest Bao hybrid score >=0.75; below threshold none. Reference year from ref_submission_date[:4].",
+  "manual_legacy_note": "Previously approved 211 manual entries retained verbatim except verification/source flags; some are uncited under the new source scan, so bibtex_auto_495_cited.csv covers only auto papers."
+}
