@@ -109,3 +109,22 @@ python -m pytest tests/ -v
 Báo cáo phân tích dữ liệu, thống kê tập ngữ liệu và đánh giá hiệu năng chi tiết được duy trì tại kho lưu trữ Jupyter Book riêng:
 - Trang báo cáo: [arXiv-Report](https://quangphat101.github.io/arXiv-Report/)
 - Mã nguồn báo cáo: [GitHub Repository](https://github.com/QuangPhat101/arXiv-Report)
+
+## 8. Huấn luyện Citation Matching cho Milestone 3
+
+Từ thư mục gốc, chạy các lệnh sau trong PowerShell. Bước tạo thêm nhãn dùng dữ liệu thô của Phát. Bước chuẩn hóa dùng các gói bàn giao trong `parquet_bao`, `parquet_Khanh`, `parquet_khoi`, cùng các nhánh nhãn đang có trong Git.
+
+```powershell
+.\venv\Scripts\python.exe -m pip install -r src/requirements-m3.txt
+.\venv\Scripts\python.exe -B data/phat_labels_seed42_2026_11_26/prepare.py --extra-auto 18
+.\venv\Scripts\python.exe -B -m src.prepare_dataset
+.\venv\Scripts\python.exe -B -m src.train_matching --dataset-dir kaggle_dataset --output-dir outputs_m3/audited
+```
+
+`kaggle_dataset` chứa Parquet nhãn, danh sách ứng viên trích dẫn, danh sách bài theo từng tập, thống kê và gói code `m3_training_code.zip`. `train` dùng nhãn tự động. `valid` và `test` chỉ dùng nhãn tay đã duyệt và tách theo bài nguồn. Khi đáp án arXiv vắng trong pool hoặc thiếu metadata BibTeX để xếp hạng, mẫu vẫn được tính trong MRR@5 và Hit@K.
+
+Với bài tạo trên 50.000 cặp ứng viên, trainer lấy mẫu trích dẫn theo seed 42 và giữ toàn bộ ứng viên cho từng trích dẫn đã chọn. Giới hạn này chỉ áp dụng trên tập train.
+
+`outputs_m3/audited` chứa trọng số Logistic Regression, model XGBoost, điểm kiểm thử và dự đoán top 5 trên tập test. Có thể chạy cùng pipeline trên Kaggle bằng [notebook huấn luyện](notebooks/train_citation_matching_kaggle.ipynb).
+
+Để chạy trên Kaggle, tạo một Dataset từ năm file trong `kaggle_dataset`. Import notebook huấn luyện, chọn **Add Input** để gắn Dataset rồi chạy **Save & Run All**. Kết quả nằm trong `/kaggle/working/outputs_m3`. Nếu bật GPU cho XGBoost, đặt `USE_GPU = True` trong ô huấn luyện.

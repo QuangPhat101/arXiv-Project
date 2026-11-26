@@ -19,13 +19,14 @@
     "2505.10672": 50
   },
   "manual_statuses": {
-    "none": 128,
+    "unresolved": 88,
+    "none": 40,
     "matched": 69
   },
   "manual_human_verified": 0,
   "auto_papers": 495,
   "auto_entries": 55794,
-  "auto_cited_entries": 25298,
+  "auto_cited_entries": 25324,
   "auto_statuses": {
     "none": 43909,
     "matched": 11885
@@ -37,5 +38,12 @@
     "explicit_arxiv_id_multiple_select_best": 2
   },
   "matcher_branch_commit": "73f06ee8012cad4173e63535082b33ad63498d68",
-  "threshold": 0.75
+  "threshold": 0.75,
+  "manual_agent_review_statuses": {
+    "unresolved_after_arxiv_search": 88,
+    "arxiv_metadata_outside_pool": 19,
+    "source_and_pool_match": 69,
+    "explicit_id_outside_pool": 6,
+    "non_article_source": 15
+  }
 }

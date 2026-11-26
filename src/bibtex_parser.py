@@ -180,9 +180,17 @@ def parse_tex_bibitem(tex_path: Path | str, arxiv_id: str) -> List[Dict[str, Any
 
         # Year
         year: Optional[int] = None
-        m_year = re.search(r'\b(19\d\d|20\d\d)\b', body)
+        arxiv_id_pattern = r'(\d{2})(?:0[1-9]|1[0-2])\.\d{4,5}(?:v\d+)?\b'
+        arxiv_match = re.search(r'(?:arxiv\s*:\s*|arxiv\.org/(?:abs|pdf)/)' + arxiv_id_pattern, body, re.I)
+        year_text = re.sub(r'arxiv\s*:\s*' + arxiv_id_pattern, '', body, flags=re.I)
+        for identifier in (doi, url):
+            if identifier:
+                year_text = year_text.replace(identifier, '')
+        m_year = re.search(r'\b(19\d\d|20\d\d)\b', year_text)
         if m_year:
             year = int(m_year.group(1))
+        elif arxiv_match:
+            year = 2000 + int(arxiv_match.group(1))
 
         # Title heuristic
         title = ""

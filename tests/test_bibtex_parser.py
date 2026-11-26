@@ -75,6 +75,22 @@ class TestBibtexParser(unittest.TestCase):
         self.assertEqual(e["doi"], "10.1109/5.726791")
         self.assertIn("Gradient-based learning", e["title"])
 
+    def test_bibitem_year_respects_the_arxiv_identifier_and_the_publication_year(self):
+        tex = self.test_dir / "paper.tex"
+        tex.write_text(
+            r"""\begin{thebibliography}{9}
+            \bibitem{preprint} S. Friedland. Tensor optimal transport. arXiv:2005.00945.
+            \bibitem{published} A preprint. arXiv:1910.00152. JMLR 23 (2022).
+            \bibitem{url} A preprint. \url{https://arxiv.org/abs/2409.03698v1}.
+            \bibitem{doi} An article. \doi{10.1109/2020.123456}.
+            \end{thebibliography}""",
+            encoding="utf-8",
+        )
+
+        years = {entry["citation_key"]: entry["year"] for entry in parse_tex_bibitem(tex, "sample")}
+
+        self.assertEqual(years, {"preprint": 2020, "published": 2022, "url": 2024, "doi": None})
+
     def test_cross_version_citation_map(self):
         v1_entries = [{
             "citation_key": "vaswani_orig",

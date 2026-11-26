@@ -26,14 +26,14 @@
 2505.10667,BGKL17,misc,"Bigot, R",[],2017,,,,true,manual_review
 2505.10667,BPPH11,misc,"Bonneel, M",[],2011,,,,true,manual_review
 2505.10667,CGP20,misc,"Caglioti, F",[],2020,,,,true,manual_review
-2505.10667,CGMP24,misc,"Caputo, A",[],,,,,true,manual_review
+2505.10667,CGMP24,misc,"Caputo, A",[],2024,,,,true,manual_review
 2505.10667,CM20,misc,A,[],2020,,,,true,manual_review
 2505.10667,CEFZ23,misc,"Mathematical Physics, Analysis and Geometry",[],2023,10.1007/s11040-023-09456-7,,https://doi.org/10.1007/s11040-023-09456-7,true,manual_review
 2505.10667,CCPS,misc,Combinatorial Optimization,[],1998,,,,true,manual_review
 2505.10667,Cut13,misc,"Cuturi, Sinkhorn distances: Lightspeed computation of optimal transport, In C",[],2013,,,,true,manual_review
 2505.10667,FGP23,misc,"Feliciangeli, A",[],2023,,,,true,manual_review
 2505.10667,Frib,misc,"Matrices: Algebra, Analysis and Applications",[],2016,,,http://www2.math.uic.edu/$\sim$friedlan/bookm.pdf,true,manual_review
-2505.10667,Fri20,misc,"Friedland, Tensor optimal transport, distance between sets of measures and tensor scaling, arXiv:2005",[],2005,,,,true,manual_review
+2505.10667,Fri20,misc,"Friedland, Tensor optimal transport, distance between sets of measures and tensor scaling, arXiv:2005",[],2020,,,,true,manual_review
 2505.10667,Fri23,misc,"Friedland, Interior point method in tensor optimal transport, arXiv:2310",[],2023,,,,true,manual_review
 2505.10667,FECZ22,misc,"Friedland, M",[],2022,,,,true,manual_review
 2505.10667,FV18,misc,SIAM J. Math. Anal.,[],2018,,,,true,manual_review
@@ -52,7 +52,7 @@
 2505.10667,PW09,misc,Pele and M,[],2009,,,,true,manual_review
 2505.10667,Pi68,misc,Oper. Res.,[],1968,,,,true,manual_review
 2505.10667,Po94,misc,Comput. Optim. Appl.,[],1994,,,,true,manual_review
-2505.10667,RR25,misc,"Randig, M",[],,,,,true,manual_review
+2505.10667,RR25,misc,"Randig, M",[],2025,,,,true,manual_review
 2505.10667,Ren01,misc,"Renegar, A Mathematical View of Interior-Point Methods, in Convex Optimization, MOS-SIAM Ser",[],2001,,,,true,manual_review
 2505.10667,RTG00,misc,Int. J. Comput. Vision,[],2000,,,,true,manual_review
 2505.10667,SL11,misc,Sandler and M,[],2011,,,,true,manual_review
@@ -6081,7 +6081,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.13479,dong2022survey,article,A survey on in-context learning,"[""Q. Dong et al.""]",2022,,arXiv preprint arXiv:2301.00234,,true,auto_hybrid_seed42
 2505.13479,wu2024chateda,article,Chateda: A large language model powered autonomous agent for eda,"[""H. Wu et al.""]",2024,,IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems,,true,auto_hybrid_seed42
 2505.13479,pinckney2024revisiting,article,"Revisiting VerilogEval: Newer LLMs, In-Context Learning, and Specification-to-RTL Tasks","[""N. Pinckney et al.""]",2024,,arXiv preprint arXiv:2408.11053,,true,auto_hybrid_seed42
-2505.13479,rozière2024codellama,misc,Code Llama: Open Foundation Models for Code,"[""B. Rozière et al.""]",2024,,,"{https://arxiv.org/abs/2308.12950},",false,auto_hybrid_seed42
+2505.13479,rozière2024codellama,misc,Code Llama: Open Foundation Models for Code,"[""B. Rozière et al.""]",2024,,,"{https://arxiv.org/abs/2308.12950},",true,auto_hybrid_seed42
 2505.13479,lu2023rtllm,misc,RTLLM: An Open-Source Benchmark for Design RTL Generation with Large Language Model,"[""Y. Lu et al.""]",2023,,,"{https://arxiv.org/abs/2308.05345},",true,auto_hybrid_seed42
 2505.13479,hu2021lora,misc,LoRA: Low-Rank Adaptation of Large Language Models,"[""E. J. Hu et al.""]",2021,,,"{https://arxiv.org/abs/2106.09685},",true,auto_hybrid_seed42
 2505.13479,brown2020languages,misc,Language Models are Few-Shot Learners,"[""T. B. Brown et al.""]",2020,,,"{https://arxiv.org/abs/2005.14165},",true,auto_hybrid_seed42
@@ -6952,7 +6952,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.15410,q3,book,Family Dynamics,"[""Angela Gillis""]",2020,,,,true,auto_hybrid_seed42
 2505.15410,q4,article,The pitfalls of premature closure: Clinical decision-making in a case of aortic dissection,"[""Bharat Kumar"",""Balavenkatesh Kanna"",""Suresh Kumar""]",2011,,BMJ Case Reports,,false,auto_hybrid_seed42
 2505.15410,q5,article,Teaching clinical reasoning: The ongoing challenge,"[""Jerome P. Kassirer""]",1983,,Academic Medicine,,false,auto_hybrid_seed42
-2505.15410,Radmehr_Singla_Käser_2025,article,PharmaSimText: A Text-Based Educational Playground filled with RL-LLM Agents That Work Together Even in Disagreement,"[""Bahar Radmehr"",""Adish Singla"",""Tanja Käser""]",2025,10.5281/zenodo.14681290,Journal of Educational Data Mining,https://jedm.educationaldatamining.org/index.php/JEDM/article/view/836,false,auto_hybrid_seed42
+2505.15410,Radmehr_Singla_Käser_2025,article,PharmaSimText: A Text-Based Educational Playground filled with RL-LLM Agents That Work Together Even in Disagreement,"[""Bahar Radmehr"",""Adish Singla"",""Tanja Käser""]",2025,10.5281/zenodo.14681290,Journal of Educational Data Mining,https://jedm.educationaldatamining.org/index.php/JEDM/article/view/836,true,auto_hybrid_seed42
 2505.15410,aied2024knowledge_tracing,inproceedings,Knowledge Tracing Unplugged: From Data Collection to Model Deployment,"[""Luiz Rodrigues"",""Anderson P. Avila-Santos"",""Thomaz E. Silva"",""Rodolfo S. da Penha"",""Carlos Neto"",""Geiser Challco"",""Ermesson L. dos Santos"",""Everton Souza"",""Guilherme Guerino"",""Thales Vieira"",""Marcelo Marinho"",""Valmir Macario"",""Ig Ibert Bittencourt"",""Diego Dermeval"",""Seiji Isotani""]",2024,,Artificial Intelligence in Education,,false,auto_hybrid_seed42
 2505.15410,aied2024_seq_dashboard,inproceedings,From Learning Actions to Dynamics: Characterizing Students' Individual Temporal Behavior with Sequence Analysis,"[""Esteban Villalobos"",""Mar P\\'erez-Sanagust\\'in"",""Julien Broisin""]",2024,,Artificial Intelligence in Education,,true,auto_hybrid_seed42
 2505.15410,edm2020_classifier_pattern,inproceedings,Analyzing Student Strategies In Blended Courses Using Clickstream Data,"[""Nil-Jana Akpinar"",""Aaditya Ramdas"",""Umut A. Acar""]",2020,,"Proceedings of the 13th International Conference on Educational Data Mining, EDM 2020, Fully virtual conference, July 10-13, 2020",https://educationaldatamining.org/files/conferences/EDM2020/papers/paper\_172.pdf,true,auto_hybrid_seed42
@@ -10584,7 +10584,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.13903,yang2024qwen25mathtechnicalreportmathematical,misc,Qwen2.5-Math Technical Report: Toward Mathematical Expert Model via Self-Improvement,"[""An Yang"",""Beichen Zhang"",""Binyuan Hui"",""Bofei Gao"",""Bowen Yu"",""Chengpeng Li"",""Dayiheng Liu"",""Jianhong Tu"",""Jingren Zhou"",""Junyang Lin"",""Keming Lu"",""Mingfeng Xue"",""Runji Lin"",""Tianyu Liu"",""Xingzhang Ren"",""Zhenru Zhang""]",2024,,,"{https://arxiv.org/abs/2409.12122},",true,auto_hybrid_seed42
 2505.13903,abdin2024phi4technicalreport,misc,Phi-4 Technical Report,"[""Marah Abdin"",""Jyoti Aneja"",""Harkirat Behl"",""Sébastien Bubeck"",""Ronen Eldan"",""Suriya Gunasekar"",""Michael Harrison"",""Russell J. Hewett"",""Mojan Javaheripi"",""Piero Kauffmann"",""James R. Lee"",""Yin Tat Lee"",""Yuanzhi Li"",""Weishung Liu"",""Caio C. T. Mendes"",""Anh Nguyen"",""Eric Price"",""Gustavo de Rosa"",""Olli Saarikivi"",""Adil Salim"",""Shital Shah"",""Xin Wang"",""Rachel Ward"",""Yue Wu"",""Dingli Yu"",""Cyril Zhang"",""Yi Zhang""]",2024,,,"{https://arxiv.org/abs/2412.08905},",true,auto_hybrid_seed42
 2505.13903,villalobos2024rundatalimitsllm,misc,Will we run out of data? Limits of LLM scaling based on human-generated data,"[""Pablo Villalobos"",""Anson Ho"",""Jaime Sevilla"",""Tamay Besiroglu"",""Lennart Heim"",""Marius Hobbhahn""]",2024,,,"{https://arxiv.org/abs/2211.04325},",true,auto_hybrid_seed42
-2505.13903,perełkiewicz2024reviewchallengesmassivewebmined,misc,A Review of the Challenges with Massive Web-mined Corpora Used in Large Language Models Pre-Training,"[""Michał Perełkiewicz"",""Rafał Poświata""]",2024,,,"{https://arxiv.org/abs/2407.07630},",false,auto_hybrid_seed42
+2505.13903,perełkiewicz2024reviewchallengesmassivewebmined,misc,A Review of the Challenges with Massive Web-mined Corpora Used in Large Language Models Pre-Training,"[""Michał Perełkiewicz"",""Rafał Poświata""]",2024,,,"{https://arxiv.org/abs/2407.07630},",true,auto_hybrid_seed42
 2505.13903,jiang2024investigatingdatacontaminationpretraining,misc,Investigating Data Contamination for Pre-training Language Models,"[""Minhao Jiang"",""Ken Ziyu Liu"",""Ming Zhong"",""Rylan Schaeffer"",""Siru Ouyang"",""Jiawei Han"",""Sanmi Koyejo""]",2024,,,"{https://arxiv.org/abs/2401.06059},",true,auto_hybrid_seed42
 2505.13903,nadas2025syntheticdatagenerationusing,misc,Synthetic Data Generation Using Large Language Models: Advances in Text and Code,"[""Mihai Nadas"",""Laura Diosan"",""Andreea Tomescu""]",2025,,,"{https://arxiv.org/abs/2503.14023},",true,auto_hybrid_seed42
 2505.13903,qin2025scalinglawssyntheticdata,misc,Scaling Laws of Synthetic Data for Language Models,"[""Zeyu Qin"",""Qingxiu Dong"",""Xingxing Zhang"",""Li Dong"",""Xiaolong Huang"",""Ziyi Yang"",""Mahmoud Khademi"",""Dongdong Zhang"",""Hany Hassan Awadalla"",""Yi R. Fung"",""Weizhu Chen"",""Minhao Cheng"",""Furu Wei""]",2025,,,"{https://arxiv.org/abs/2503.19551},",true,auto_hybrid_seed42
@@ -11607,9 +11607,9 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.14339,amabili_sultanum_2021,misc,Paper Maps: Improving the Readability of Scientific Papers via Concept Maps,"[""Lorenzo Amabili"",""Nicole Sultanum""]",2021,,,osf.io/7cbsq,true,auto_hybrid_seed42
 2505.14339,riahi_watson_2021,misc,Aesthetics for Communicative Visualization: a Brief Review,"[""Maryam Riahi"",""Benjamin Watson""]",2021,,,osf.io/g8s2f,true,auto_hybrid_seed42
 2505.14339,zhang_sun_padilla_barua_bertini_parker_2020,misc,Mapping the Landscape of COVID-19 Crisis Visualizations,"[""Yixuan Zhang"",""Yifan Sun"",""Lace Padilla"",""Sumit Barua"",""Enrico Bertini"",""Andrea G Parker""]",2020,,,osf.io/kd3y9,true,auto_hybrid_seed42
-2505.14339,lévesque_godbout_robert-angers_hurtut_2020,misc,"How do taxes, benefits and public spending evolve for a taxpayer during their lifetime ?","[""François Lévesque"",""Luc Godbout"",""Michaël Robert-Angers"",""Thomas Hurtut""]",2020,,,osf.io/c4ruf,false,auto_hybrid_seed42
+2505.14339,lévesque_godbout_robert-angers_hurtut_2020,misc,"How do taxes, benefits and public spending evolve for a taxpayer during their lifetime ?","[""François Lévesque"",""Luc Godbout"",""Michaël Robert-Angers"",""Thomas Hurtut""]",2020,,,osf.io/c4ruf,true,auto_hybrid_seed42
 2505.14339,schwabish_feng_2020,misc,Applying Racial Equity Awareness in Data Visualization,"[""Jonathan Schwabish"",""Alice Feng""]",2020,,,osf.io/x8tbw,true,auto_hybrid_seed42
-2505.14339,jänicke_2019,misc,A Visualization Course for Journalism Students,"[""Stefan Jänicke""]",2019,,,osf.io/vg9x7,false,auto_hybrid_seed42
+2505.14339,jänicke_2019,misc,A Visualization Course for Journalism Students,"[""Stefan Jänicke""]",2019,,,osf.io/vg9x7,true,auto_hybrid_seed42
 2505.14339,dasgupta_2018,misc,Bridging Computation and Visual Communication of Change using Levels of Abstraction,"[""Dasgupta""]",2018,,,https://www.viscomm.io/2018/papers/abstraction.pdf,true,auto_hybrid_seed42
 2505.14339,brath_matusiak_2018,misc,Automated Annotations,"[""Matusiak Brath""]",2018,,,https://www.viscomm.io/2018/posters/annotations.pdf,true,auto_hybrid_seed42
 2505.14339,liu_wall_patel_park_2020,misc,COVID-19 Health Equity Dashboard - Addressing Vulnerable Populations,"[""Star Liu"",""Emily Wall"",""Shivani A Patel"",""Yubin Park""]",2020,,,osf.io/2frha,true,auto_hybrid_seed42
@@ -14780,7 +14780,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.14766,gao2024building,article,UniTS: A Unified Multi-Task Time Series Model,"[""Shanghua Gao"",""Teddy Koker"",""Owen Queen"",""Thomas Hartvigsen"",""Theodoros Tsiligkaridis"",""Marinka Zitnik""]",2024,,NeurIPS,https://arxiv.org/abs/2403.00131,true,auto_hybrid_seed42
 2505.11183,Bansal_Hosseini_Agarwal_Tran_Kazemi_2024,article,"Smaller, Weaker, Yet Better: Training LLM Reasoners via Compute-Optimal Sampling","[""Hritik Bansal"",""Arian Hosseini"",""Rishabh Agarwal"",""Vinh Q. Tran"",""Mehran Kazemi""]",2024,10.48550/arXiv.2408.16737,,http://arxiv.org/abs/2408.16737,false,auto_hybrid_seed42
 2505.11183,Bartlett_Jordan_McAuliffe_2006,article,"Convexity, Classification, and Risk Bounds","[""Peter L Bartlett"",""Michael I Jordan"",""Jon D McAuliffe""]",2006,10.1198/016214505000000907,Journal of the American Statistical Association,,true,auto_hybrid_seed42
-2505.11183,Dembczyński_Waegeman_Cheng_Hüllermeier_2010a,inproceedings,Regret Analysis for Performance Metrics in Multi-Label Classification: The Case of Hamming and Subset Zero-One Loss,"[""Krzysztof Dembczyński"",""Willem Waegeman"",""Weiwei Cheng"",""Eyke Hüllermeier""]",2010,10.1007/978-3-642-15880-3_24,Machine Learning and Knowledge Discovery in Databases,,false,auto_hybrid_seed42
+2505.11183,Dembczyński_Waegeman_Cheng_Hüllermeier_2010a,inproceedings,Regret Analysis for Performance Metrics in Multi-Label Classification: The Case of Hamming and Subset Zero-One Loss,"[""Krzysztof Dembczyński"",""Willem Waegeman"",""Weiwei Cheng"",""Eyke Hüllermeier""]",2010,10.1007/978-3-642-15880-3_24,Machine Learning and Knowledge Discovery in Databases,,true,auto_hybrid_seed42
 2505.11183,Duchi_Mackey_Jordan_2013,article,The asymptotics of ranking algorithms,"[""John C. Duchi"",""Lester Mackey"",""Michael I. Jordan""]",2013,10.1214/13-AOS1142,The Annals of Statistics,,false,auto_hybrid_seed42
 2505.11183,Gao_Zhou_2011a,inproceedings,On the Consistency of Multi-Label Learning,"[""Wei Gao"",""Zhi-Hua Zhou""]",2011,,Proceedings of the 24th Annual Conference on Learning Theory,https://proceedings.mlr.press/v19/gao11a.html,true,auto_hybrid_seed42
 2505.11183,Mao_Mohri_Zhong_2023d,inproceedings,Cross-Entropy Loss Functions: Theoretical Analysis and Applications,"[""Anqi Mao"",""Mehryar Mohri"",""Yutao Zhong""]",2023,,Proceedings of the 40th International Conference on Machine Learning,https://proceedings.mlr.press/v202/mao23b.html,false,auto_hybrid_seed42
@@ -15122,7 +15122,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.11532,yang2023diffpure,inproceedings,DiffPure: Diffusion-Based Defense Against Adversarial Attacks,"[""Song Yang"",""Zhifei Liu"",""Zhaowen Wang"",""Yang Wang"",""Zhouchen Lin""]",2023,,NeurIPS,,false,auto_hybrid_seed42
 2505.11532,teslafsd,online,Model Y Owner's Manual,"[""Inc. Tesla""]",2024,,,https://www.tesla.com/ownersmanual/modely/en_us/GUID-2CB60804-9CEA-4F4B-8B04-09B991368DC5.html,true,auto_hybrid_seed42
 2505.11532,morgulis2019foolingrealcaradversarial,misc,Fooling a Real Car with Adversarial Traffic Signs,"[""Nir Morgulis"",""Alexander Kreines"",""Shachar Mendelowitz"",""Yuval Weisglass""]",2019,,,"{https://arxiv.org/abs/1907.00374},",false,auto_hybrid_seed42
-2505.11532,cinà2024attackbenchevaluatinggradientbasedattacks,misc,AttackBench: Evaluating Gradient-based Attacks for Adversarial Examples,"[""Antonio Emanuele Cinà"",""Jérôme Rony"",""Maura Pintor"",""Luca Demetrio"",""Ambra Demontis"",""Battista Biggio"",""Ismail Ben Ayed"",""Fabio Roli""]",2024,,,"{https://arxiv.org/abs/2404.19460},",false,auto_hybrid_seed42
+2505.11532,cinà2024attackbenchevaluatinggradientbasedattacks,misc,AttackBench: Evaluating Gradient-based Attacks for Adversarial Examples,"[""Antonio Emanuele Cinà"",""Jérôme Rony"",""Maura Pintor"",""Luca Demetrio"",""Ambra Demontis"",""Battista Biggio"",""Ismail Ben Ayed"",""Fabio Roli""]",2024,,,"{https://arxiv.org/abs/2404.19460},",true,auto_hybrid_seed42
 2505.11532,dong2019benchmarkingadversarialrobustness,misc,Benchmarking Adversarial Robustness,"[""Yinpeng Dong"",""Qi-An Fu"",""Xiao Yang"",""Tianyu Pang"",""Hang Su"",""Zihao Xiao"",""Jun Zhu""]",2019,,,"{https://arxiv.org/abs/1912.11852},",false,auto_hybrid_seed42
 2505.11532,zhao2024adversarialtrainingsurvey,misc,Adversarial Training: A Survey,"[""Mengnan Zhao"",""Lihe Zhang"",""Jingwen Ye"",""Huchuan Lu"",""Baocai Yin"",""Xinchao Wang""]",2024,,,"{https://arxiv.org/abs/2410.15042},",true,auto_hybrid_seed42
 2505.11532,chen2019poba,article,POBA-GA: Perturbation optimized black-box adversarial attacks via genetic algorithm,"[""Jinyin Chen"",""Mengmeng Su"",""Shijing Shen"",""Hui Xiong"",""Haibin Zheng""]",2019,,Computers \& Security,,true,auto_hybrid_seed42
@@ -17477,7 +17477,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.12439,ammanabrolu2020graph,article,Graph constrained reinforcement learning for natural language action spaces,"[""Prithviraj Ammanabrolu"",""Matthew Hausknecht""]",2020,,arXiv preprint arXiv:2001.08837,,true,auto_hybrid_seed42
 2505.12439,ammanabrolu2020avoid,article,How to avoid being eaten by a grue: Structured exploration strategies for textual worlds,"[""Prithviraj Ammanabrolu"",""Ethan Tien"",""Matthew Hausknecht"",""Mark O Riedl""]",2020,,arXiv preprint arXiv:2006.07409,,true,auto_hybrid_seed42
 2505.12439,he2016deep,inproceedings,Deep Reinforcement Learning with a Natural Language Action Space,"[""Ji He"",""Jianshu Chen"",""Xiaodong He"",""Jianfeng Gao"",""Lihong Li"",""Li Deng"",""Mari Ostendorf""]",2016,,Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers),,true,auto_hybrid_seed42
-2505.12439,Hausknecht_Ammanabrolu_Côté_Yuan_2020,article,Interactive Fiction Games: A Colossal Adventure,"[""Matthew Hausknecht"",""Prithviraj Ammanabrolu"",""Marc-Alexandre Côté"",""Xingdi Yuan""]",2020,10.1609/aaai.v34i05.6297,Proceedings of the AAAI Conference on Artificial Intelligence,https://ojs.aaai.org/index.php/AAAI/article/view/6297,false,auto_hybrid_seed42
+2505.12439,Hausknecht_Ammanabrolu_Côté_Yuan_2020,article,Interactive Fiction Games: A Colossal Adventure,"[""Matthew Hausknecht"",""Prithviraj Ammanabrolu"",""Marc-Alexandre Côté"",""Xingdi Yuan""]",2020,10.1609/aaai.v34i05.6297,Proceedings of the AAAI Conference on Artificial Intelligence,https://ojs.aaai.org/index.php/AAAI/article/view/6297,true,auto_hybrid_seed42
 2505.12439,aarseth1995cybertext,book,Cybertext: perspectives on ergodic literature,"[""Espen Aarseth""]",1995,,,,true,auto_hybrid_seed42
 2505.12439,spring2015gaming,article,Gaming history: computer and video games as historical scholarship,"[""Dawn Spring""]",2015,,Rethinking History,,true,auto_hybrid_seed42
 2505.12439,zander2016intuition,article,Intuition and insight: Two processes that build on each other or fundamentally differ?,"[""Thea Zander"",""Michael \\\""Ollinger"",""Kirsten G Volz""]",2016,,Frontiers in psychology,,true,auto_hybrid_seed42
@@ -18672,7 +18672,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.11732,Hashimoto2012,misc,"Hashimoto, K",[],2012,,,,false,auto_hybrid_seed42
 2505.11732,Zhou2013,misc,"Zhou, Z",[],2013,,,,false,auto_hybrid_seed42
 2505.11732,Dioguardi2016,misc,P,[],2016,,,,true,auto_hybrid_seed42
-2505.11732,Böhmer2015,misc,E,[],2015,,,,false,auto_hybrid_seed42
+2505.11732,Böhmer2015,misc,E,[],2015,,,,true,auto_hybrid_seed42
 2505.11732,Baek2015,misc,"Baek, D","[""S-H""]",2015,,,,true,auto_hybrid_seed42
 2505.11732,Imai2009,misc,"Imai, K",[],2009,,,,true,auto_hybrid_seed42
 2505.11732,Wiecki2017,misc,"Wiecki, M",[],2017,,,,true,auto_hybrid_seed42
@@ -18700,7 +18700,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.11732,Reyes1992,misc,P,[],1992,,,,false,auto_hybrid_seed42
 2505.11732,Fukazawa2007,misc,"Fukazawa, N",[],2007,,,,false,auto_hybrid_seed42
 2505.11732,T1,misc,"Here M(t) and M( ) are the nuclear magnetization at time t after saturation and the equilibrium nuclear magnetization at time t , respectively","[""1/T_1 at each T is determined by fitting the nuclear magnetization M versus time t dependence after saturation using the exponential function 1-M(t)/M( ) = exp[-(t/T_1)^ ]""]",,,,,true,auto_hybrid_seed42
-2505.11732,Arčon2010,misc,"Arčon, P",[],2012,,,,false,auto_hybrid_seed42
+2505.11732,Arčon2010,misc,"Arčon, P",[],2012,,,,true,auto_hybrid_seed42
 2505.11732,Shimizu2009,misc,"Shimizu, T",[],2009,,,,true,auto_hybrid_seed42
 2505.11732,Michioka2010,misc,"Michioka, H",[],2010,,,,true,auto_hybrid_seed42
 2505.11732,Hara2011,misc,"Hara, H",[],2011,,,,true,auto_hybrid_seed42
@@ -23738,7 +23738,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.13182,Miller2019,misc,Explanation in artificial intelligence: Insights from the social sciences,"[""Miller""]",2019,,Artificial intelligence,,true,auto_hybrid_seed42
 2505.13182,Russell2015,misc,", Dewey, D","[""Russell""]",2015,,,,true,auto_hybrid_seed42
 2505.13182,Jobin2019,misc,", Ienca, M","[""Jobin""]",2019,,,,true,auto_hybrid_seed42
-2505.13182,Corrêa2023,misc,K,"[""Corrêa""]",2023,,,,false,auto_hybrid_seed42
+2505.13182,Corrêa2023,misc,K,"[""Corrêa""]",2023,,,,true,auto_hybrid_seed42
 2505.13182,Saheb2024,misc,", and Saheb, T","[""Saheb""]",2024,,,,false,auto_hybrid_seed42
 2505.13182,Floridi2018,misc,", Cowls, J","[""Floridi""]",2018,,,,false,auto_hybrid_seed42
 2505.13182,Hagendorff2020,misc,The ethics of AI ethics: An evaluation of guidelines,"[""Hagendorff""]",2020,,,,false,auto_hybrid_seed42
@@ -23750,7 +23750,7 @@ pairings.pdf:application/pdf},",true,auto_hybrid_seed42
 2505.13182,Perlaza2024,misc,M,"[""Perlaza""]",2024,,,,true,auto_hybrid_seed42
 2505.13182,Goodfellow2016,misc,", Bengio, Y","[""Goodfellow""]",2016,,,,true,auto_hybrid_seed42
 2505.13182,Pinsker1964,misc,S,"[""Pinsker""]",1964,,,,true,auto_hybrid_seed42
-2505.13182,Rodríguez2021,misc,", Bassi, G","[""Rodríguez Gálvez""]",,,,,false,auto_hybrid_seed42
+2505.13182,Rodríguez2021,misc,", Bassi, G","[""Rodríguez Gálvez""]",,,,,true,auto_hybrid_seed42
 2505.13182,Devroye2013,misc,", Györfi, L","[""Devroye""]",1964,,,,true,auto_hybrid_seed42
 2505.13182,vapnik1999overview,article,An overview of statistical learning theory,"[""Vladimir N Vapnik""]",1999,10.1109/72.788640,IEEE Transactions on Neural Networks,,true,auto_hybrid_seed42
 2505.13182,kullback1951information,article,On information and sufficiency,"[""Solomon Kullback"",""Richard A Leibler""]",1951,,The Annals of Mathematical Statistics,,true,auto_hybrid_seed42
@@ -38290,7 +38290,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14876,cook_helland_su_2013,article,Envelopes and partial least squares regression,"[""R. D. Cook"",""I. S. Helland"",""Z. Su""]",2013,10.1111/rssb.12018,Journal of the Royal Statistical Society: Series B (Statistical Methodology),,true,auto_hybrid_seed42
 2505.14876,cook_li_chiaromonte_2010,article,ENVELOPE MODELS FOR PARSIMONIOUS AND EFFICIENT MULTIVARIATE LINEAR REGRESSION,"[""R. Dennis Cook"",""Bing Li"",""Francesca Chiaromonte""]",2010,,Statistica Sinica,https://www.jstor.org/stable/24309466,true,auto_hybrid_seed42
 2505.14876,mccullagh_nelder_1989,book,Generalized Linear Models,"[""P. McCullagh"",""J. A. Nelder""]",1989,,,,true,auto_hybrid_seed42
-2505.14876,müller_stadtmüller_2005,article,Generalized functional linear models,"[""Hans-Georg Müller"",""Ulrich Stadtmüller""]",2005,10.1214/009053604000001156,The Annals of Statistics,,false,auto_hybrid_seed42
+2505.14876,müller_stadtmüller_2005,article,Generalized functional linear models,"[""Hans-Georg Müller"",""Ulrich Stadtmüller""]",2005,10.1214/009053604000001156,The Annals of Statistics,,true,auto_hybrid_seed42
 2505.14876,shang_hyndman_2018,misc,fds: Functional Data Sets,"[""Han Lin Shang"",""Rob J. Hyndman""]",2018,,R-Packages,https://cran.r-project.org/web/packages/fds/index.html,false,auto_hybrid_seed42
 2505.14876,kalivas_1997,article,Two data sets of near infrared spectra,"[""John H Kalivas""]",1997,10.1016/s0169-7439(97)00038-5,Chemometrics and Intelligent Laboratory Systems,,true,auto_hybrid_seed42
 2505.14876,goldsmithetal,misc,refund: Regression with Functional Data,"[""Jeff Goldsmith"",""et al.""]",2023,,R-Packages,https://cran.r-project.org/web/packages/refund/index.html,true,auto_hybrid_seed42
@@ -38315,7 +38315,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14876,escabias_aguilera_valderrama_2007,article,Functional PLS logit regression model,"[""M. Escabias"",""A.M. Aguilera"",""M.J. Valderrama""]",2007,10.1016/j.csda.2006.08.011,Computational Statistics \& Data Analysis,,true,auto_hybrid_seed42
 2505.14876,AGUILERA201680,article,Penalized versions of functional PLS regression,"[""A.M. Aguilera"",""M.C. Aguilera-Morillo"",""C. Preda""]",2016,10.1016/j.chemolab.2016.03.013,Chemometrics and Intelligent Laboratory Systems,https://www.sciencedirect.com/science/article/pii/S0169743916300491,true,auto_hybrid_seed42
 2505.14876,Reiss01092007,article,Functional Principal Component Regression and Functional Partial Least Squares,"[""Philip T Reiss"",""R. Todd Ogden and""]",2007,10.1198/016214507000000527,Journal of the American Statistical Association,https://doi.org/10.1198/016214507000000527,true,auto_hybrid_seed42
-2505.14876,höskuldsson_1988,article,PLS regression methods,"[""Agnar Höskuldsson""]",1988,10.1002/cem.1180020306,Journal of Chemometrics,,false,auto_hybrid_seed42
+2505.14876,höskuldsson_1988,article,PLS regression methods,"[""Agnar Höskuldsson""]",1988,10.1002/cem.1180020306,Journal of Chemometrics,,true,auto_hybrid_seed42
 2505.14876,PREDA2005149,article,PLS regression on a stochastic process,"[""C. Preda"",""G. Saporta""]",2005,10.1016/j.csda.2003.10.003,Computational Statistics \& Data Analysis,https://www.sciencedirect.com/science/article/pii/S0167947303002366,false,auto_hybrid_seed42
 2505.14876,Renvlp,manual,Renvlp: Computing Envelope Estimators,"[""Minji Lee"",""Zhihua Su""]",2023,,,{https://CRAN.R-project.org/,true,auto_hybrid_seed42
 2505.14876,nguyen2002tumor,article,Tumor classification by partial least squares using microarray gene expression data,"[""Danh V Nguyen"",""David M Rocke""]",2002,,Bioinformatics,,true,auto_hybrid_seed42
@@ -39596,7 +39596,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.11417,miller2017parlai,article,ParlAI: A Dialog Research Software Platform,"[""A. H. Miller"",""W. Feng"",""A. Fisch"",""J. Lu"",""D. Batra"",""A. Bordes"",""D. Parikh"",""J. Weston""]",2017,,arXiv preprint arXiv:1705.06476,,true,auto_hybrid_seed42
 2505.11417,zheng2024lmsyschat1mlargescalerealworldllm,misc,LMSYS-Chat-1M: A Large-Scale Real-World LLM Conversation Dataset,"[""Lianmin Zheng"",""Wei-Lin Chiang"",""Ying Sheng"",""Tianle Li"",""Siyuan Zhuang"",""Zhanghao Wu"",""Yonghao Zhuang"",""Zhuohan Li"",""Zi Lin"",""Eric P. Xing"",""Joseph E. Gonzalez"",""Ion Stoica"",""Hao Zhang""]",2024,,,"{https://arxiv.org/abs/2309.11998},",true,auto_hybrid_seed42
 2505.11417,acon96_home_assistant_requests,misc,,"[""Home Assistant Requests Dataset""]",2023,,,https://huggingface.co/datasets/acon96/Home-Assistant-Requests,true,auto_hybrid_seed42
-2505.11417,köpf2023openassistantconversationsdemocratizing,misc,OpenAssistant Conversations -- Democratizing Large Language Model Alignment,"[""Andreas Köpf"",""Yannic Kilcher"",""Dimitri von Rütte"",""Sotiris Anagnostidis"",""Zhi-Rui Tam"",""Keith Stevens"",""Abdullah Barhoum"",""Nguyen Minh Duc"",""Oliver Stanley"",""Richárd Nagyfi"",""Shahul ES"",""Sameer Suri"",""David Glushkov"",""Arnav Dantuluri"",""Andrew Maguire"",""Christoph Schuhmann"",""Huu Nguyen"",""Alexander Mattick""]",2023,,,"{https://arxiv.org/abs/2304.07327},",false,auto_hybrid_seed42
+2505.11417,köpf2023openassistantconversationsdemocratizing,misc,OpenAssistant Conversations -- Democratizing Large Language Model Alignment,"[""Andreas Köpf"",""Yannic Kilcher"",""Dimitri von Rütte"",""Sotiris Anagnostidis"",""Zhi-Rui Tam"",""Keith Stevens"",""Abdullah Barhoum"",""Nguyen Minh Duc"",""Oliver Stanley"",""Richárd Nagyfi"",""Shahul ES"",""Sameer Suri"",""David Glushkov"",""Arnav Dantuluri"",""Andrew Maguire"",""Christoph Schuhmann"",""Huu Nguyen"",""Alexander Mattick""]",2023,,,"{https://arxiv.org/abs/2304.07327},",true,auto_hybrid_seed42
 2505.11417,deepseekai2025deepseekv3technicalreport,misc,DeepSeek-V3 Technical Report,"[""DeepSeek-AI""]",2025,,,"{https://arxiv.org/abs/2412.19437},",true,auto_hybrid_seed42
 2505.11417,llmstats_github_2024,misc,LLM Stats – Leaderboard and Metrics for Large Language Models,"[""LLM Stats""]",2024,,,https://github.com/JonathanChavezTamales/LLMStats,true,auto_hybrid_seed42
 2505.11417,xu2024fastondevicellminference,misc,Fast On-device LLM Inference with NPUs,"[""Daliang Xu"",""Hao Zhang"",""Liming Yang"",""Ruiqi Liu"",""Gang Huang"",""Mengwei Xu"",""Xuanzhe Liu""]",2024,,,"{https://arxiv.org/abs/2407.05858},",true,auto_hybrid_seed42
@@ -40137,7 +40137,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.13343,MLMetadata,online,ML Metadata (MLMD),"[""Google""]",2023,,,https://github.com/google/ml-metadata,true,auto_hybrid_seed42
 2505.13343,network5010001,article,"Enhancing Communication Networks in the New Era with Artificial Intelligence: Techniques, Applications, and Future Directions","[""Mohammed El-Hajj""]",2025,10.3390/network5010001,Network,https://www.mdpi.com/2673-8732/5/1/1,false,auto_hybrid_seed42
 2505.13343,Lumos5G,inproceedings,Lumos5G: Mapping and Predicting Commercial mmWave 5G Throughput,"[""Arvind Narayanan"",""Eman Ramadan"",""Rishabh Mehta"",""Xinyue Hu"",""Qingxu Liu"",""Rostand A. K. Fezeu"",""Udhaya Kumar Dayalan"",""Saurabh Verma"",""Peiqi Ji"",""Tao Li"",""Feng Qian"",""Zhi-Li Zhang""]",2020,10.1145/3419394.3423629,Proc. ACM Internet Measurement Conference,https://doi.org/10.1145/3419394.3423629,true,auto_hybrid_seed42
-2505.13343,Bertalanič_Morano_Cerar_2022,inproceedings,Lokalizacija na prostem s pomočjo radiofrekvenčnih odtisov tehnologije BLE v testnem omrežjem,"[""Blaž Bertalanič"",""Grega Morano"",""Gregor Cerar""]",2022,,,https://erk.fe.uni-lj.si/2022/erk22.pdf,false,auto_hybrid_seed42
+2505.13343,Bertalanič_Morano_Cerar_2022,inproceedings,Lokalizacija na prostem s pomočjo radiofrekvenčnih odtisov tehnologije BLE v testnem omrežjem,"[""Blaž Bertalanič"",""Grega Morano"",""Gregor Cerar""]",2022,,,https://erk.fe.uni-lj.si/2022/erk22.pdf,true,auto_hybrid_seed42
 2505.13343,gaia5g,inproceedings,GAIA 5G: A Multi-access Smart-Campus Architecture,"[""Jorge Gallego-Madrid"",""Luis Bernal-Escobedo"",""Rodrigo Asensio"",""Ana Hermosilla"",""Alejandro Molina Zarca"",""Jordi Ortiz"",""Ramon Sanchez-Iborra"",""Antonio Skarmeta""]",2022,,Internet of Things,,true,auto_hybrid_seed42
 2505.15440,bandura_psychology_1982,article,The psychology of chance encounters and life paths.,"[""Albert Bandura""]",1982,,American psychologist,,true,auto_hybrid_seed42
 2505.15440,busch_towards_2022,article,Towards a Theory of Serendipity: A Systematic Review and Conceptualization,"[""Christian Busch""]",2022,,Journal of Management Studies,,true,auto_hybrid_seed42
@@ -43377,7 +43377,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 }
 
 %23",true,auto_hybrid_seed42
-2505.14274,Córcoles2011,article,Protecting superconducting qubits from radiation,"[""Antonio D. Córcoles"",""Jerry M. Chow"",""Jay M. Gambetta"",""Chad Rigetti"",""J. R. Rozen"",""George A. Keefe"",""Mary Beth Rothwell"",""Mark B. Ketchen"",""M. Steffen""]",2011,10.1063/1.3658630,Applied Physics Letters,https://doi.org/10.1063/1.3658630,false,auto_hybrid_seed42
+2505.14274,Córcoles2011,article,Protecting superconducting qubits from radiation,"[""Antonio D. Córcoles"",""Jerry M. Chow"",""Jay M. Gambetta"",""Chad Rigetti"",""J. R. Rozen"",""George A. Keefe"",""Mary Beth Rothwell"",""Mark B. Ketchen"",""M. Steffen""]",2011,10.1063/1.3658630,Applied Physics Letters,https://doi.org/10.1063/1.3658630,true,auto_hybrid_seed42
 2505.14274,zaretskey2013,article,Decoherence in a pair of long-lived Cooper-pair boxes,"[""V Zaretskey"",""S Novikov"",""B Suri"",""Z Kim"",""FC Wellstood"",""BS Palmer""]",2013,,Journal of Applied Physics,,true,auto_hybrid_seed42
 2505.14274,deVisser2011,article,Number Fluctuations of Sparse Quasiparticles in a Superconductor,"[""P. J. de Visser"",""J. J. A. Baselmans"",""P. Diener"",""S. J. C. Yates"",""A. Endo"",""T. M. Klapwijk""]",2011,10.1103/PhysRevLett.106.167004,Phys. Rev. Lett.,"{https://link.aps.org/doi/10.1103/PhysRevLett.106.167004}
 }
@@ -43427,7 +43427,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14274,Córcoles2015,article,Demonstration of a quantum error detection code using a square lattice of four superconducting qubits,"[""A. D. C\\'orcoles"",""Easwar Magesan"",""Srikanth J. Srinivasan"",""Andrew W. Cross"",""M. Steffen"",""Jay M. Gambetta"",""Jerry M. Chow""]",2015,10.1038/ncomms7979,Nature Communications,"{https://doi.org/10.1038/ncomms7979}
 }
 
-%44",false,auto_hybrid_seed42
+%44",true,auto_hybrid_seed42
 2505.14274,Smith1984,article,Specular reflectance of optical-black coatings in the far infrared,"[""Sheldon M. Smith""]",1984,10.1364/AO.23.002311,Appl. Opt.,{https://opg.optica.org/ao/abstract.cfm?,true,auto_hybrid_seed42
 2505.14274,Ekin_cryostat,incollection,Introduction to Measurement Cryostats and Cooling Methods,"[""Jack W. Ekin""]",2006,10.1093/acprof:oso/9780198570547.003.0001,"Experimental Techniques for Low-Temperature Measurements: Cryostat Design, Material Properties and Superconductor Critical-Current Testing",https://doi.org/10.1093/acprof:oso/9780198570547.003.0001,true,auto_hybrid_seed42
 2505.14274,AZO_materials,misc,"Gold - Physical, Mechanical, Thermal, and Electrical Properties","[""Skyla Baily""]",,,,{https://www.azom.com/article.aspx?,true,auto_hybrid_seed42
@@ -43470,7 +43470,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14274,Bründermann2012,book,Terahertz Techniques,"[""Erik Bründermann"",""Heinz-Wilhelm Hubers""]",2012,,,"{http://doi.org/10.1007/978-3-642-02592-1}
 }
 
-%64",false,auto_hybrid_seed42
+%64",true,auto_hybrid_seed42
 2505.14274,howell2010thermal,book,"Thermal Radiation Heat Transfer, 5th Edition","[""J.R. Howell"",""M.P. Menguc"",""R. Siegel""]",2010,,,{https://books.google.ru/books?,true,auto_hybrid_seed42
 2505.14274,Grunhaupt2017,article,An argon ion beam milling process for native AlOx layers enabling coherent superconducting contacts,"[""Lukas Grünhaupt"",""Uwe von Lüpke"",""Daria Gusenkova"",""Sebastian T. Skacel"",""Nataliya Maleeva"",""Steffen Schlör"",""Alexander Bilmes"",""Hannes Rotzinger"",""Alexey V. Ustinov"",""Martin Weides"",""Ioan M. Pop""]",2017,10.1063/1.4990491,Applied Physics Letters,http://dx.doi.org/10.1063/1.4990491,true,auto_hybrid_seed42
 2505.14274,Maleeva2018,article,Circuit quantum electrodynamics of granular aluminum resonators,"[""N. Maleeva"",""L. Grünhaupt"",""T. Klein"",""F. Levy-Bertrand"",""O. Dupre"",""M. Calvo"",""F. Valenti"",""P. Winkel"",""F. Friedrich"",""W. Wernsdorfer"",""A. V. Ustinov"",""H. Rotzinger"",""A. Monfardini"",""M. V. Fistul"",""I. M. Pop""]",2018,10.1038/s41467-018-06386-9,Nature Communications,http://dx.doi.org/10.1038/s41467-018-06386-9,true,auto_hybrid_seed42
@@ -43662,7 +43662,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14274,Grünhaupt2019,article,Granular aluminium as a superconducting material for high-impedance quantum circuits,"[""Lukas Gr\\\""unhaupt"",""Martin Spiecker"",""Daria Gusenkova"",""Nataliya Maleeva"",""Sebastian T. Skacel"",""Ivan Takmakov"",""Francesco Valenti"",""Patrick Winkel"",""Hannes Rotzinger"",""Wolfgang Wernsdorfer"",""Alexey V. Ustinov"",""Ioan M. Pop""]",2019,10.1038/s41563-019-0350-3,Nature Materials,"{https://doi.org/10.1038/s41563-019-0350-3}
 }
 
-%164",false,auto_hybrid_seed42
+%164",true,auto_hybrid_seed42
 2505.14274,Andersen2019,article,Entanglement stabilization using ancilla-based parity detection and real-time feedback in superconducting circuits,"[""Christian Kraglund Andersen"",""Ants Remm"",""Stefania Lazar"",""Sebastian Krinner"",""Johannes Heinsoo"",""Jean-Claude Besse"",""Mihai Gabureac"",""Andreas Wallraff"",""Christopher Eichler""]",2019,10.1038/s41534-019-0185-4,npj Quantum Information,"{https://doi.org/10.1038/s41534-019-0185-4}
 }
 
@@ -43699,7 +43699,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14274,Ristè2013,article,Millisecond charge-parity fluctuations and induced decoherence in a superconducting transmon qubit,"[""D. Rist\\`e"",""C. C. Bultink"",""M. J. Tiggelman"",""R. N. Schouten"",""K. W. Lehnert"",""L. DiCarlo""]",2013,10.1038/ncomms2936,Nature Communications,"{https://doi.org/10.1038/ncomms2936}
 }
 
-%174",false,auto_hybrid_seed42
+%174",true,auto_hybrid_seed42
 2505.14274,gordon2022environmental,article,Environmental radiation impact on lifetimes and quasiparticle tunneling rates of fixed-frequency transmon qubits,"[""RT Gordon"",""CE Murray"",""C Kurter"",""M Sandberg"",""SA Hall"",""K Balakrishnan"",""R Shelby"",""B Wacaser"",""AA Stabile"",""JW Sleight""]",2022,,Applied Physics Letters,,true,auto_hybrid_seed42
 2505.14274,Connolly2024,article,Coexistence of Nonequilibrium Density and Equilibrium Energy Distribution of Quasiparticles in a Superconducting Qubit,"[""Thomas Connolly"",""Pavel D. Kurilovich"",""Spencer Diamond"",""Heekun Nho"",""Charlotte G. L. B ttcher"",""Leonid I. Glazman"",""Valla Fatemi"",""Michel H. Devoret""]",2024,10.1103/PhysRevLett.132.217001,Phys. Rev. Lett.,"{https://link.aps.org/doi/10.1103/PhysRevLett.132.217001}
 }
@@ -43773,7 +43773,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.14274,Braumüller2017,article,Analog quantum simulation of the Rabi model in the ultra-strong coupling regime,"[""Jochen Braum\\\""uller"",""Michael Marthaler"",""Andre Schneider"",""Alexander Stehli"",""Hannes Rotzinger"",""Martin Weides"",""Alexey V. Ustinov""]",2017,10.1038/s41467-017-00894-w,Nature Communications,"{https://doi.org/10.1038/s41467-017-00894-w}
 }
 
- %119",false,auto_hybrid_seed42
+ %119",true,auto_hybrid_seed42
 2505.14274,zwanenburg2025,misc,Single-Qubit Gates Beyond the Rotating-Wave Approximation for Strongly Anharmonic Low-Frequency Qubits,"[""Martijn F. S. Zwanenburg"",""Siddharth Singh"",""Eugene Y. Huang"",""Figen Yilmaz"",""Taryn V. Stefanski"",""Jinlun Hu"",""Piranavan Kumaravadivel"",""Christian Kraglund Andersen""]",2025,,,"{https://arxiv.org/abs/2503.08238}, 
 }
 
@@ -50617,8 +50617,8 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.12843,NEURIPS2024_e099c1c9,inproceedings,SimPO: Simple Preference Optimization with a Reference-Free Reward,"[""Yu Meng"",""Mengzhou Xia"",""Danqi Chen""]",2024,,Advances in Neural Information Processing Systems,https://proceedings.neurips.cc/paper_files/paper/2024/file/e099c1c9699814af0be873a175361713-Paper-Conference.pdf,true,auto_hybrid_seed42
 2505.12843,shen2025rmboost,inproceedings,RMBoost: Reward Model Training With Preference-Conditional Multi-Aspect Synthetic Data Generation,"[""Jiaming Shen"",""Ran Xu"",""Yennie Jun"",""Zhen Qin"",""Tianqi Liu"",""Carl Yang"",""Yi Liang"",""Simon Baumgartner"",""Michael Bendersky""]",2025,,Scaling Self-Improving Foundation Models without Human Supervision,{https://openreview.net/forum?,false,auto_hybrid_seed42
 2505.12843,dou2024metarm,article,Metarm: Shifted distributions alignment via meta-learning,"[""Shihan Dou"",""Yan Liu"",""Enyu Zhou"",""Tianlong Li"",""Haoxiang Jia"",""Limao Xiong"",""Xin Zhao"",""Junjie Ye"",""Rui Zheng"",""Tao Gui""]",2024,,arXiv preprint arXiv:2405.00438,,false,auto_hybrid_seed42
-2505.12843,ramé2024warpbenefitsweightaveraged,misc,WARP: On the Benefits of Weight Averaged Rewarded Policies,"[""Alexandre Ramé"",""Johan Ferret"",""Nino Vieillard"",""Robert Dadashi"",""Léonard Hussenot"",""Pierre-Louis Cedoz"",""Pier Giuseppe Sessa"",""Sertan Girgin"",""Arthur Douillard"",""Olivier Bachem""]",2024,,,"{https://arxiv.org/abs/2406.16768},",false,auto_hybrid_seed42
-2505.12843,ramé2024warmbenefitsweightaveraged,misc,WARM: On the Benefits of Weight Averaged Reward Models,"[""Alexandre Ramé"",""Nino Vieillard"",""Léonard Hussenot"",""Robert Dadashi"",""Geoffrey Cideron"",""Olivier Bachem"",""Johan Ferret""]",2024,,,"{https://arxiv.org/abs/2401.12187},",false,auto_hybrid_seed42
+2505.12843,ramé2024warpbenefitsweightaveraged,misc,WARP: On the Benefits of Weight Averaged Rewarded Policies,"[""Alexandre Ramé"",""Johan Ferret"",""Nino Vieillard"",""Robert Dadashi"",""Léonard Hussenot"",""Pierre-Louis Cedoz"",""Pier Giuseppe Sessa"",""Sertan Girgin"",""Arthur Douillard"",""Olivier Bachem""]",2024,,,"{https://arxiv.org/abs/2406.16768},",true,auto_hybrid_seed42
+2505.12843,ramé2024warmbenefitsweightaveraged,misc,WARM: On the Benefits of Weight Averaged Reward Models,"[""Alexandre Ramé"",""Nino Vieillard"",""Léonard Hussenot"",""Robert Dadashi"",""Geoffrey Cideron"",""Olivier Bachem"",""Johan Ferret""]",2024,,,"{https://arxiv.org/abs/2401.12187},",true,auto_hybrid_seed42
 2505.12843,liu2025rrm,inproceedings,RRM: Robust Reward Model Training Mitigates Reward Hacking,"[""Tianqi Liu"",""Wei Xiong"",""Jie Ren"",""Lichang Chen"",""Junru Wu"",""Rishabh Joshi"",""Yang Gao"",""Jiaming Shen"",""Zhen Qin"",""Tianhe Yu"",""Daniel Sohn"",""Anastasia Makarova"",""Jeremiah Zhe Liu"",""Yuan Liu"",""Bilal Piot"",""Abe Ittycheriah"",""Aviral Kumar"",""Mohammad Saleh""]",2025,,The Thirteenth International Conference on Learning Representations,{https://openreview.net/forum?,true,auto_hybrid_seed42
 2505.12843,He_2016_CVPR,inproceedings,Deep Residual Learning for Image Recognition,"[""Kaiming He"",""Xiangyu Zhang"",""Shaoqing Ren"",""Jian Sun""]",2016,,Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition,,true,auto_hybrid_seed42
 2505.12843,NIPS2017_3f5ee243,inproceedings,Attention is All you Need,"[""Ashish Vaswani"",""Noam Shazeer"",""Niki Parmar"",""Jakob Uszkoreit"",""Llion Jones"",""Aidan N Gomez"",""ukasz Kaiser"",""Illia Polosukhin""]",2017,,Advances in Neural Information Processing Systems,https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf,true,auto_hybrid_seed42
@@ -50635,7 +50635,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.12843,touvron2023llama2openfoundation,misc,Llama 2: Open Foundation and Fine-Tuned Chat Models,"[""Hugo Touvron"",""Louis Martin"",""Kevin Stone"",""Peter Albert"",""Amjad Almahairi"",""Yasmine Babaei""]",2023,,,"{https://arxiv.org/abs/2307.09288},",true,auto_hybrid_seed42
 2505.12843,deepseekai2025deepseekv3technicalreport,misc,DeepSeek-V3 Technical Report,"[""DeepSeek-AI"",""Aixin Liu"",""Bei Feng"",""Bing Xue"",""Bingxuan Wang"",""Bochao Wu""]",2025,,,"{https://arxiv.org/abs/2412.19437},",true,auto_hybrid_seed42
 2505.12843,deepseekai2025deepseekr1incentivizingreasoningcapability,misc,DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning,"[""DeepSeek-AI"",""Daya Guo"",""Dejian Yang"",""Haowei Zhang"",""Junxiao Song""]",2025,,,"{https://arxiv.org/abs/2501.12948},",true,auto_hybrid_seed42
-2505.12843,Köpf_Rütte_Anagnostidis_Tam_Stevens_Nguyen_Duc_Stanley_Nagyfi_Es,article,OpenAssistant Conversations -Democratizing Large Language Model Alignment,"[""Andreas Köpf"",""DimitriVon Rütte"",""Sotiris Anagnostidis"",""Zhi-Rui Tam"",""Keith Stevens"",""AbdullahBarhoum Nguyen""]",2023,,Advances in Neural Information Processing Systems,https://proceedings.neurips.cc/paper_files/paper/2023/file/949f0f8f32267d297c2d4e3ee10a2e7e-Paper-Datasets_and_Benchmarks.pdf,false,auto_hybrid_seed42
+2505.12843,Köpf_Rütte_Anagnostidis_Tam_Stevens_Nguyen_Duc_Stanley_Nagyfi_Es,article,OpenAssistant Conversations -Democratizing Large Language Model Alignment,"[""Andreas Köpf"",""DimitriVon Rütte"",""Sotiris Anagnostidis"",""Zhi-Rui Tam"",""Keith Stevens"",""AbdullahBarhoum Nguyen""]",2023,,Advances in Neural Information Processing Systems,https://proceedings.neurips.cc/paper_files/paper/2023/file/949f0f8f32267d297c2d4e3ee10a2e7e-Paper-Datasets_and_Benchmarks.pdf,true,auto_hybrid_seed42
 2505.12843,pearson1895regression,article,Notes on regression and inheritance in the case of two parents,"[""Karl Pearson""]",,10.1098/rspl.1895.0041,Proceedings of the Royal Society of London,,true,auto_hybrid_seed42
 2505.12843,Rasley_Rajbhandari_Ruwase_He_2020,inproceedings,Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters,"[""Jeff Rasley"",""Samyam Rajbhandari"",""Olatunji Ruwase"",""Yuxiong He""]",2020,,Proceedings of the ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining,,true,auto_hybrid_seed42
 2505.12843,DBLP:journals/corr/abs-1912-01703,article,"PyTorch: An Imperative Style, High-Performance Deep Learning Library","[""Adam Paszke"",""Sam Gross"",""Francisco Massa"",""Adam Lerer"",""James Bradbury"",""Gregory Chanan""]",2019,,CoRR,http://arxiv.org/abs/1912.01703,true,auto_hybrid_seed42
@@ -54880,7 +54880,7 @@ github.io/posts/2023-06-23-agent/},",false,auto_hybrid_seed42
 2505.12313,DBLP:journals/corr/abs-2410-12877,article,Improving Instruction-Following in Language Models through Activation Steering,"[""Alessandro Stolfo"",""Vidhisha Balachandran"",""Safoora Yousefi"",""Eric Horvitz"",""Besmira Nushi""]",2024,10.48550/ARXIV.2410.12877,CoRR,https://doi.org/10.48550/arXiv.2410.12877,true,auto_hybrid_seed42
 2505.12313,DBLP:conf/nips/CaoZC00MC24,inproceedings,Personalized Steering of Large Language Models: Versatile Steering Vectors Through Bi-directional Preference Optimization,"[""Yuanpu Cao"",""Tianrong Zhang"",""Bochuan Cao"",""Ziyi Yin"",""Lu Lin"",""Fenglong Ma"",""Jinghui Chen""]",2024,,"Advances in Neural Information Processing Systems 38: Annual Conference on Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December 10 - 15, 2024",http://papers.nips.cc/paper\_files/paper/2024/hash/58cbe393b4254da8966780a40d023c0b-Abstract-Conference.html,true,auto_hybrid_seed42
 2505.12313,DBLP:journals/corr/abs-2410-01174,article,Towards Inference-time Category-wise Safety Steering for Large Language Models,"[""Amrita Bhattacharjee"",""Shaona Ghosh"",""Traian Rebedea"",""Christopher Parisien""]",2024,10.48550/ARXIV.2410.01174,CoRR,https://doi.org/10.48550/arXiv.2410.01174,true,auto_hybrid_seed42
-2505.12313,buciluǎ2006model,inproceedings,Model compression,"[""Cristian Buciluǎ"",""Rich Caruana"",""Alexandru Niculescu-Mizil""]",2006,,Proceedings of the 12th ACM SIGKDD international conference on Knowledge discovery and data mining,,false,auto_hybrid_seed42
+2505.12313,buciluǎ2006model,inproceedings,Model compression,"[""Cristian Buciluǎ"",""Rich Caruana"",""Alexandru Niculescu-Mizil""]",2006,,Proceedings of the 12th ACM SIGKDD international conference on Knowledge discovery and data mining,,true,auto_hybrid_seed42
 2505.12313,DBLP:journals/corr/HintonVD15,article,Distilling the Knowledge in a Neural Network,"[""Geoffrey E. Hinton"",""Oriol Vinyals"",""Jeffrey Dean""]",2015,,CoRR,http://arxiv.org/abs/1503.02531,true,auto_hybrid_seed42
 2505.12313,DBLP:conf/emnlp/KimR16,inproceedings,Sequence-Level Knowledge Distillation,"[""Yoon Kim"",""Alexander M. Rush""]",2016,10.18653/V1/D16-1139,"Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, EMNLP 2016, Austin, Texas, USA, November 1-4, 2016",https://doi.org/10.18653/v1/d16-1139,true,auto_hybrid_seed42
 2505.12313,DBLP:conf/acl/HsiehLYNFRKLP23,inproceedings,Distilling Step-by-Step! Outperforming Larger Language Models with Less Training Data and Smaller Model Sizes,"[""Cheng-Yu Hsieh"",""Chun-Liang Li"",""Chih-Kuan Yeh"",""Hootan Nakhost"",""Yasuhisa Fujii"",""Alex Ratner"",""Ranjay Krishna"",""Chen-Yu Lee"",""Tomas Pfister""]",2023,10.18653/V1/2023.FINDINGS-ACL.507,"Findings of the Association for Computational Linguistics: ACL 2023, Toronto, Canada, July 9-14, 2023",https://doi.org/10.18653/v1/2023.findings-acl.507,true,auto_hybrid_seed42

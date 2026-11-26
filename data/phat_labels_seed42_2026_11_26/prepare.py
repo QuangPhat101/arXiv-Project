@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import collections
 import csv
 import importlib.util
@@ -192,6 +193,36 @@ def label_paper(paper):
     return '', (info, labels, bibtex, rules)
 
 
+def extra_auto_papers(count):
+    with (OUT / 'selected_papers.csv').open(encoding='utf-8-sig', newline='') as stream:
+        selected = {row['paper_arxiv_id'] for row in csv.DictReader(stream)}
+    eligible = sorted(p for p in DATA.iterdir() if p.is_dir() and MIN_ID <= p.name <= MAX_ID
+                      and p.name not in MANUAL and valid_pool(p))
+    random.Random(SEED).shuffle(eligible)
+    remaining = [paper for paper in eligible if paper.name not in selected]
+    labels, bibtex = [], []
+    with ProcessPoolExecutor(max_workers=6) as pool:
+        for start in range(0, len(remaining), 12):
+            for _, result in pool.map(label_paper, remaining[start:start + 12]):
+                if result is None:
+                    continue
+                _, paper_labels, paper_bibtex, _ = result
+                labels.extend(paper_labels)
+                bibtex.extend(paper_bibtex)
+                count -= 1
+                if count == 0:
+                    for name, fields, rows in (
+                        ('auto_extra_labels.csv', AUTO_FIELDS, labels),
+                        ('bibtex_extra.csv', tuple(bibtex[0]), bibtex),
+                    ):
+                        path = OUT / name
+                        temp = path.with_suffix('.tmp')
+                        write_csv(temp, fields, rows)
+                        temp.replace(path)
+                    return
+    raise ValueError(f'Not enough eligible papers for the supplemental labels: {count} short')
+
+
 def main():
     with (OUT / 'manual_5_review.csv').open(encoding='utf-8-sig', newline='') as stream:
         manual = list(csv.DictReader(stream))
@@ -208,8 +239,8 @@ def main():
         cited, _, refs, entries, _ = parse_paper(DATA / aid)
         labels = by_paper[aid]
         assert labels.keys() <= entries.keys()
-        reviewed = sum(row['label_status'] in ('matched', 'none') for row in labels.values())
-        assert reviewed >= 20
+        assert len(labels) >= 20
+        assert labels.keys() <= cited
         for key, row in labels.items():
             label = row['groundtruth_arxiv_id']
             if row['label_status'] == 'matched':
@@ -274,6 +305,9 @@ def main():
         'manual_papers': len(manual_papers), 'manual_entries': len(manual),
         'manual_entries_by_paper': {aid: len(by_paper[aid]) for aid in MANUAL},
         'manual_statuses': dict(collections.Counter(row['label_status'] for row in manual)),
+        'manual_agent_review_statuses': dict(collections.Counter(
+            row['agent_review_status'] for row in manual if row.get('agent_review_status')
+        )),
         'manual_human_verified': sum(row['human_verified'].lower() == 'true' for row in manual),
         'auto_papers': len(auto_papers), 'auto_entries': len(auto_labels),
         'auto_cited_entries': sum(row['is_cited'] == 'true' for row in auto_bibtex),
@@ -289,4 +323,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--extra-auto', type=int, metavar='COUNT')
+    args = parser.parse_args()
+    if args.extra_auto is None:
+        main()
+    elif args.extra_auto > 0:
+        extra_auto_papers(args.extra_auto)
+    else:
+        parser.error('--extra-auto must be positive')
