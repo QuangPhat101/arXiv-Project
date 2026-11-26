@@ -1,0 +1,41 @@
+{
+  "seed": 42,
+  "range": [
+    "2505.10666",
+    "2505.15665"
+  ],
+  "max_bib_file_bytes": 5000000,
+  "eligible_before_parse": 4394,
+  "skipped_after_shuffle": {
+    "no_cited_titled_entry_or_reference": 122
+  },
+  "manual_papers": 5,
+  "manual_entries": 197,
+  "manual_entries_by_paper": {
+    "2505.10666": 21,
+    "2505.10667": 40,
+    "2505.10668": 41,
+    "2505.10669": 45,
+    "2505.10672": 50
+  },
+  "manual_statuses": {
+    "none": 128,
+    "matched": 69
+  },
+  "manual_human_verified": 0,
+  "auto_papers": 495,
+  "auto_entries": 55794,
+  "auto_cited_entries": 25298,
+  "auto_statuses": {
+    "none": 43909,
+    "matched": 11885
+  },
+  "auto_rules": {
+    "hybrid_score_lt_0.75": 43909,
+    "hybrid_score_ge_0.75": 7134,
+    "explicit_arxiv_id": 4749,
+    "explicit_arxiv_id_multiple_select_best": 2
+  },
+  "matcher_branch_commit": "73f06ee8012cad4173e63535082b33ad63498d68",
+  "threshold": 0.75
+}
