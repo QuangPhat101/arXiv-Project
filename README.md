@@ -1,35 +1,43 @@
-# arXiv Data Science Project: Milestone 1 (Data Crawling)
+# arXiv Citation Matching Project (Milestones 1, 2, 3)
 
-> Bản tích hợp M2: xem [task.md](task.md) để nhận việc, tạo nhánh sửa và chạy kiểm thử nghiệm thu.
+Dự án thu thập bài báo khoa học từ arXiv, phân tích cấu trúc tài liệu LaTeX và BibTeX, và huấn luyện mô hình đối sánh trích dẫn (Citation Matching) với dữ liệu tham chiếu từ Semantic Scholar. Đây là đồ án môn Nhập môn Khoa học Dữ liệu tại Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM (HCMUS).
 
-Dự án thu thập dữ liệu bài báo khoa học từ kho lưu trữ mở arXiv và trích xuất trích dẫn từ Semantic Scholar, thuộc môn học Nhập môn Khoa học Dữ liệu tại Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM (HCMUS).
+- Bộ dữ liệu công khai trên Hugging Face: [QuangPhat101/arxiv-citation-matching](https://huggingface.co/datasets/QuangPhat101/arxiv-citation-matching)
+- Trang báo cáo: [arXiv-Report](https://quangphat101.github.io/arXiv-Report/) ([GitHub Repository](https://github.com/QuangPhat101/arXiv-Report))
 
 ## 1. Giới thiệu tổng quan
 
-Hệ thống cung cấp giải pháp thu thập tự động cho tập bài báo theo dải mã arXiv được phân công:
-- Khám phá metadata: Truy vấn API arXiv để lấy tiêu đề, tác giả, ngày công bố và danh sách tất cả các phiên bản từ v1 đến vN.
-- Tải mã nguồn LaTeX: Thu thập toàn bộ các phiên bản mã nguồn thô từ export mirror chính thức của arXiv.
-- Trích xuất chọn lọc: Giải nén và chỉ giữ lại các tệp `.tex` và `.bib`, loại bỏ hình ảnh và tệp nhị phân để tiết kiệm hơn 90% dung lượng lưu trữ.
-- Thu thập trích dẫn: Tích hợp với Semantic Scholar Graph API để lấy thông tin các bài báo được trích dẫn.
-- Xử lý song song: Hỗ trợ cơ chế Producer-Consumer đa luồng, giúp tối ưu hóa thời gian chờ mạng trong khi vẫn tuân thủ nghiêm ngặt các quy định về tần suất truy vấn.
+Hệ thống gồm ba giai đoạn chính:
+- **Milestone 1 (Thu thập dữ liệu):** Truy vấn arXiv API để lấy metadata và danh sách phiên bản (v1 đến vN), tải mã nguồn LaTeX song song dạng Producer-Consumer, giải nén chọn lọc các tệp `.tex`/`.bib`/`.bbl` (tiết kiệm hơn 90% dung lượng), và thu thập metadata tham chiếu qua Semantic Scholar Graph API.
+- **Milestone 2 (Phân tích cú pháp và chuẩn hóa):** Xác định tệp LaTeX chính theo từng phiên bản, trích xuất cây phân cấp phần tử (`elements`, `hierarchy`), khử trùng lặp nội dung xuyên phiên bản, chuẩn hóa và hợp nhất thư mục tài liệu (`bibtex`) theo định danh (DOI/arXiv ID) và metadata.
+- **Milestone 3 (Đối sánh trích dẫn và xuất bản Hugging Face):** Đồng bộ nhãn tay và nhãn tự động trên tập 2,018 bài (2,002 train, 8 valid, 8 test), trích xuất 8 đặc trưng theo cặp (BibTeX, tham chiếu), huấn luyện Logistic Regression và XGBoost, đánh giá bằng MRR@5 và xuất đủ 6 bảng Parquet theo chuẩn Hugging Face Hub.
 
 ## 2. Cấu trúc thư mục
 
 ```text
 .
 ├── src/
-│   ├── crawler.py           # Điểm vào chính, điều phối toàn bộ quy trình thu thập
-│   ├── discovery.py         # Truy vấn metadata và phiên bản từ arXiv API
-│   ├── downloader.py        # Tải mã nguồn bài báo, hỗ trợ tiếp tục tải khi gián đoạn
-│   ├── extractor.py         # Giải nén chọn lọc tệp LaTeX, phòng chống lỗ hổng Zip Slip
-│   ├── references.py        # Lấy dữ liệu trích dẫn từ Semantic Scholar API
-│   ├── profiler.py          # Đo lường tài nguyên CPU, RAM và thời gian thực thi
-│   ├── utils.py             # Bộ điều phối rate limit, retry và cấu hình logger
-│   └── requirements.txt     # Danh sách thư viện phụ thuộc
-├── tests/
-│   └── test_parallel_crawler.py # Bộ kiểm thử cho luồng xử lý và an toàn đa luồng
-├── plan.md                  # Kế hoạch thực hiện chi tiết của nhóm
-└── README.md                # Tài liệu kỹ thuật dự án
+│   ├── crawler.py            # Điểm vào Milestone 1, điều phối luồng thu thập
+│   ├── discovery.py          # Truy vấn metadata và phiên bản từ arXiv API
+│   ├── downloader.py         # Tải mã nguồn bài báo, hỗ trợ tiếp tục khi gián đoạn
+│   ├── extractor.py          # Giải nén chọn lọc tệp LaTeX, chống Zip Slip
+│   ├── references.py         # Lấy dữ liệu trích dẫn từ Semantic Scholar API
+│   ├── profiler.py           # Đo lường CPU, RAM và thời gian thực thi
+│   ├── utils.py              # Điều phối rate limit, retry và logger
+│   ├── parser.py             # Phân tích LaTeX, xây dựng cây elements và hierarchy
+│   ├── bibtex_parser.py      # Phân tích phạm vi trích dẫn và hợp nhất BibTeX
+│   ├── run_m2_pipeline.py    # Chạy pipeline Milestone 2 cho tập bài báo
+│   ├── export_hf_tables.py   # Xuất 5 bảng Parquet M1/M2 kèm audit.json
+│   ├── matching.py           # Chuẩn hóa tiêu đề, họ tác giả và đối sánh cơ bản
+│   ├── prepare_dataset.py    # Chuẩn hóa, đối chiếu nhãn tay và tạo tập huấn luyện M3
+│   ├── train_matching.py     # Huấn luyện và đánh giá Heuristic, Logistic Regression, XGBoost
+│   ├── export_predictions.py # Xuất bảng predictions top-5 Parquet (Logistic Regression hoặc XGBoost)
+│   ├── requirements.txt      # Thư viện cho Milestone 1 và 2
+│   └── requirements-m3.txt   # Thư viện bổ sung cho Milestone 3
+├── tests/                    # Kiểm thử đơn vị và kiểm thử nghiệm thu M2/M3
+├── notebooks/                # Notebook huấn luyện Kaggle và pipeline Colab
+├── task.md                   # Bảng phân công và ghi chú tích hợp M2
+└── README.md                 # Tài liệu kỹ thuật dự án
 ```
 
 ## 3. Cài đặt môi trường
@@ -155,13 +163,21 @@ Chỉ định thư mục xuất M1/M2 và bộ nhãn cùng tập chia đã duy�
 
 ### Xuất bảng dự đoán Parquet
 
-Sau khi đồng bộ nhãn, huấn luyện Logistic Regression trên bộ vừa tạo rồi xuất dự đoán bằng cùng tập chia và bảng BibTeX của nhóm. Có thể truyền một hoặc nhiều file hoặc thư mục Parquet vào `--bibtex`.
+Sau khi đồng bộ nhãn, huấn luyện mô hình đầy đủ (gồm Heuristic baseline, Logistic Regression và XGBoost) trên bộ vừa tạo rồi xuất bảng `predictions` bằng cùng tập chia và bảng BibTeX của nhóm. Trình xuất [src/export_predictions.py](src/export_predictions.py) tự động nhận diện cả `xgboost_model.json` lẫn `logreg_model.json` (hoặc truyền tường minh qua `--model-type`). Có thể truyền một hoặc nhiều file hoặc thư mục Parquet vào `--bibtex`.
 
 ```powershell
-.\venv\Scripts\python.exe -B -m src.train_matching --dataset-dir outputs_m3/hf_release_work/dataset --output-dir outputs_m3/hf_release_work/models --workers 8 --logreg-only
-.\venv\Scripts\python.exe -B -m src.export_predictions --dataset-dir outputs_m3/hf_release_work/dataset --bibtex outputs_m3/hf_release_work/m1_m2/data/bibtex --model outputs_m3/hf_release_work/models/logreg_model.json --output outputs_m3/hf_release_work/predictions/part-00000.parquet --workers 8
+.\venv\Scripts\python.exe -B -m src.train_matching --dataset-dir outputs_m3/hf_release_work/dataset --output-dir outputs_m3/hf_release_work/models_full --workers 8
+.\venv\Scripts\python.exe -B -m src.export_predictions --dataset-dir outputs_m3/hf_release_work/dataset --bibtex outputs_m3/hf_release_work/m1_m2/data/bibtex --model outputs_m3/hf_release_work/models_full/xgboost_model.json --output outputs_m3/hf_release_work/predictions_xgb/part-00000.parquet --workers 8
 ```
 
-Để xuất bản nộp, dùng model fit trên bản chia tương ứng với `--dataset-dir` và dùng các bảng M2 đầy đủ cho các bài đã chọn. Cột `groundtruth_arxiv_id` lấy từ nhãn có đáp án trong pool của chính bài nguồn. Đưa các file Parquet vào `data/predictions/` trên Hugging Face và thêm cấu hình bảng này vào Dataset Card. [Đề Milestone 3](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/matching/)
+Kết quả đánh giá trên tập test (251 mục có nhãn trên 8 bài, mỗi thành viên 1 bài nhãn tay và 1 bài nhãn tự động):
+
+| Mô hình | MRR@5 (All) | MRR@5 (Manual) | MRR@5 (Auto) | Hit@5 (Matched) | E2E Accuracy |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Heuristic baseline | 0.5853 | 0.7738 | 0.3729 | 0.9554 | 0.9243 |
+| Logistic Regression | 0.5985 | 0.7912 | 0.3814 | 0.9745 | 0.9243 |
+| **XGBoost (bản xuất HF)** | **0.6007** | **0.7954** | **0.3814** | **0.9809** | **0.9323** |
+
+Để xuất bản nộp, dùng model fit trên bản chia tương ứng với `--dataset-dir` và dùng các bảng M2 đầy đủ cho các bài đã chọn. Cột `groundtruth_arxiv_id` lấy từ nhãn có đáp án trong pool của chính bài nguồn. Đưa 6 thư mục Parquet (`papers`, `references`, `elements`, `hierarchy`, `bibtex`, `predictions`) vào `data/` trên Hugging Face kèm Dataset Card YAML. [Đề Milestone 3](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/matching/)
 
 - Bộ dữ liệu công khai trên Hugging Face: [QuangPhat101/arxiv-citation-matching](https://huggingface.co/datasets/QuangPhat101/arxiv-citation-matching)

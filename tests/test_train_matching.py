@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from src.export_predictions import PREDICTIONS_SCHEMA, rank_paper
+from src.export_predictions import PREDICTIONS_SCHEMA, load_model_spec, rank_paper, score_features
 from src.prepare_dataset import automatic_labels, reconcile_reviewed_labels
 from src.train_matching import FEATURE_NAMES, _process_paper_chunk, evaluate_queries, tune_threshold
 
@@ -91,3 +91,56 @@ def test_release_labels_preserve_reviewed_key_identity_and_use_same_paper_pool()
     assert manual["label_provenance"].tolist() == ["human"]
     assert decisions[0]["decision"] == "renamed"
     assert decisions[0]["label_status"] == "none"
+
+
+def test_export_predictions_supports_xgboost_and_empty_features(tmp_path):
+    try:
+        import xgboost as xgb
+    except ImportError:
+        return
+
+    rng = np.random.default_rng(42)
+    x_pos = np.ones((20, len(FEATURE_NAMES)), dtype=np.float32)
+    x_neg = np.zeros((20, len(FEATURE_NAMES)), dtype=np.float32)
+    x_train = np.vstack([x_pos, x_neg]) + rng.normal(0.0, 0.05, size=(40, len(FEATURE_NAMES))).astype(np.float32)
+    y_train = np.array([1] * 20 + [0] * 20, dtype=np.uint8)
+    clf = xgb.XGBClassifier(n_estimators=5, max_depth=2, random_state=42)
+    clf.fit(x_train, y_train)
+    model_path = tmp_path / "xgboost_model.json"
+    clf.save_model(str(model_path))
+
+    spec = load_model_spec(model_path)
+    assert spec["model_type"] == "xgboost"
+    assert score_features(spec, np.empty((0, len(FEATURE_NAMES)), dtype=np.float32)).size == 0
+
+    entries = [
+        {
+            "citation_key": "k1",
+            "citation_title": "Attention Is All You Need",
+            "citation_authors": ["Ashish Vaswani"],
+            "citation_year": 2017,
+            "bibtex_source": "m2_bibtex",
+            "groundtruth_arxiv_id": "1706.03762",
+            "label_kind": None,
+            "member": None,
+        },
+        {
+            "citation_key": "k_empty",
+            "citation_title": "",
+            "citation_authors": [],
+            "citation_year": None,
+            "bibtex_source": "missing",
+            "groundtruth_arxiv_id": "",
+            "label_kind": None,
+            "member": None,
+        },
+    ]
+    refs = [
+        {"ref_arxiv_id": "1706.03762", "ref_title": "Attention Is All You Need", "ref_authors": ["Ashish Vaswani"], "ref_submission_date": "2017-06-12"},
+        {"ref_arxiv_id": "2005.14165", "ref_title": "Language Models are Few-Shot Learners", "ref_authors": ["Tom Brown"], "ref_submission_date": "2020-05-28"},
+    ]
+    rows = rank_paper(("2501.00001", "test", entries, refs, spec))
+    assert rows[0]["cand_1"] == "1706.03762"
+    assert rows[0]["groundtruth_arxiv_id"] == "1706.03762"
+    assert rows[1]["groundtruth_arxiv_id"] is None
+    assert "cand_1" not in rows[1]

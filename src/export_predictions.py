@@ -24,11 +24,61 @@ PREDICTIONS_SCHEMA = pa.schema([
     *[pa.field(column, pa.string()) for column in TOP_COLUMNS],
 ])
 
+_XGB_MODEL_CACHE = {}
+
+
+def load_model_spec(model_path: Path, model_type: str = "auto"):
+    payload = json.loads(model_path.read_text(encoding="utf-8"))
+    resolved = model_type
+    if resolved == "auto":
+        if "learner" in payload:
+            resolved = "xgboost"
+        elif "raw_coefficients" in payload:
+            resolved = "logreg"
+        else:
+            raise ValueError(f"Unrecognized model format in {model_path}")
+
+    if resolved == "logreg":
+        if payload.get("features") != FEATURE_NAMES:
+            raise ValueError("Logistic Regression model features do not match this pipeline")
+        return {"model_type": "logreg", **payload}
+
+    if resolved == "xgboost":
+        import xgboost as xgb
+
+        clf = xgb.XGBClassifier()
+        clf.load_model(str(model_path))
+        if int(getattr(clf, "n_features_in_", len(FEATURE_NAMES))) != len(FEATURE_NAMES):
+            raise ValueError("XGBoost model feature count does not match this pipeline")
+        return {"model_type": "xgboost", "model_path": str(model_path.resolve())}
+
+    raise ValueError(f"Unsupported model_type: {model_type}")
+
+
+def score_features(model_spec, features: np.ndarray) -> np.ndarray:
+    if len(features) == 0:
+        return np.empty(0, dtype=np.float64)
+    model_type = model_spec.get("model_type", "logreg")
+    if model_type == "logreg":
+        return predict_logreg_probs(model_spec, features)
+    if model_type == "xgboost":
+        model_path = model_spec["model_path"]
+        clf = _XGB_MODEL_CACHE.get(model_path)
+        if clf is None:
+            import xgboost as xgb
+
+            clf = xgb.XGBClassifier()
+            clf.load_model(model_path)
+            clf.set_params(n_jobs=1)
+            _XGB_MODEL_CACHE[model_path] = clf
+        return clf.predict_proba(features)[:, 1].astype(np.float64, copy=False)
+    raise ValueError(f"Unsupported model_type: {model_type}")
+
 
 def rank_paper(task):
     aid, partition, entries, refs, model = task
     features = _process_paper_chunk((aid, entries, refs, True))
-    scores = predict_logreg_probs(model, features["x"])
+    scores = score_features(model, features["x"])
     rows = []
     offset = 0
     for query in features["queries"]:
@@ -46,10 +96,8 @@ def rank_paper(task):
     return rows
 
 
-def export_predictions(dataset_dir, bibtex_paths, model_path, output_path, splits, workers):
-    model = json.loads(model_path.read_text(encoding="utf-8"))
-    if model.get("features") != FEATURE_NAMES:
-        raise ValueError("Logistic Regression model features do not match this pipeline")
+def export_predictions(dataset_dir, bibtex_paths, model_path, output_path, splits, workers, model_type="auto"):
+    model = load_model_spec(model_path, model_type=model_type)
     partitions = pd.read_csv(dataset_dir / "partitions.csv", dtype={"paper_arxiv_id": str})
     if partitions["paper_arxiv_id"].duplicated().any():
         raise ValueError("Source papers must have a single partition")
@@ -114,7 +162,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset-dir", type=Path, default=Path("kaggle_dataset"))
     parser.add_argument("--bibtex", type=Path, nargs="+", help="M2 BibTeX Parquet files or directories")
-    parser.add_argument("--model", type=Path, required=True, help="Saved logreg_model.json")
+    parser.add_argument("--model", type=Path, required=True, help="Saved logreg_model.json or xgboost_model.json")
+    parser.add_argument("--model-type", choices=("auto", "logreg", "xgboost"), default="auto")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--splits", nargs="+", choices=("train", "valid", "test"), default=["train", "valid", "test"])
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
@@ -124,7 +173,7 @@ def main():
         parser.error("Pass --bibtex with the processed BibTeX Parquet files")
     if args.workers < 1:
         parser.error("--workers must be at least 1")
-    export_predictions(args.dataset_dir, bibtex, args.model, args.output, args.splits, args.workers)
+    export_predictions(args.dataset_dir, bibtex, args.model, args.output, args.splits, args.workers, model_type=args.model_type)
 
 
 if __name__ == "__main__":
