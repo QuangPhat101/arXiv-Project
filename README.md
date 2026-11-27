@@ -145,12 +145,23 @@ Chạy từ thư mục gốc. Mỗi đường dẫn trong `--data-dir` chứa c�
 
 Có thể truyền nhiều thư mục dữ liệu sau `--data-dir`. Kết quả gồm năm bảng Parquet chia phần trong `data/` và `audit.json` ghi số dòng, trạng thái xử lý phiên bản và lỗi đọc dữ liệu. [Notebook Colab](notebooks/run_m2_m3_colab_kaggle.ipynb) cũng dùng trình xuất này.
 
-### Xuất bảng dự đoán Parquet
+### Đồng bộ nhãn với bản xuất nhóm
 
-Lệnh sau dùng Logistic Regression để xếp hạng các mục BibTeX của những bài trong tập chia. Ví dụ dùng bộ huấn luyện trong `kaggle_dataset` và bảng BibTeX nhóm ở `outputs_m3/hf_group_m1_m2/data/bibtex`. Chạy lệnh sau khi đồng bộ khóa nhãn với bảng BibTeX đó. Có thể truyền một hoặc nhiều file hoặc thư mục Parquet vào `--bibtex`.
+Chỉ định thư mục xuất M1/M2 và bộ nhãn cùng tập chia đã duyệt. Trình chuẩn hóa giữ tập chia theo ID bài, đối chiếu nhãn tay với khóa mới và tạo lại nhãn tự động cho mọi mục BibTeX thuộc các bài đã chọn để gắn nhãn tự động. Thuật toán ưu tiên một ID arXiv tường minh trong danh sách ứng viên của bài. Khi thiếu ID tường minh, nó tìm một ứng viên duy nhất có tiêu đề chuẩn hóa khớp và có họ tác giả chung. Xem `label_reconciliation.json` để rà các khóa cần xử lý.
 
 ```powershell
-.\venv\Scripts\python.exe -B -m src.export_predictions --dataset-dir kaggle_dataset --bibtex outputs_m3/hf_group_m1_m2/data/bibtex --model outputs_m3/audited/logreg_model.json --output outputs_m3/predictions/part-00000.parquet
+.\venv\Scripts\python.exe -B -m src.prepare_dataset --hf-tables-dir outputs_m3/hf_release_work/m1_m2 --reviewed-dataset outputs_m3/hf_reviewed_run/dataset --members-dir outputs_m3/hf_release_work/members --output-dir outputs_m3/hf_release_work/dataset --sync-dir outputs_m3/hf_release_work/sync
+```
+
+### Xuất bảng dự đoán Parquet
+
+Sau khi đồng bộ nhãn, huấn luyện Logistic Regression trên bộ vừa tạo rồi xuất dự đoán bằng cùng tập chia và bảng BibTeX của nhóm. Có thể truyền một hoặc nhiều file hoặc thư mục Parquet vào `--bibtex`.
+
+```powershell
+.\venv\Scripts\python.exe -B -m src.train_matching --dataset-dir outputs_m3/hf_release_work/dataset --output-dir outputs_m3/hf_release_work/models --workers 8 --logreg-only
+.\venv\Scripts\python.exe -B -m src.export_predictions --dataset-dir outputs_m3/hf_release_work/dataset --bibtex outputs_m3/hf_release_work/m1_m2/data/bibtex --model outputs_m3/hf_release_work/models/logreg_model.json --output outputs_m3/hf_release_work/predictions/part-00000.parquet --workers 8
 ```
 
 Để xuất bản nộp, dùng model fit trên bản chia tương ứng với `--dataset-dir` và dùng các bảng M2 đầy đủ cho các bài đã chọn. Cột `groundtruth_arxiv_id` lấy từ nhãn có đáp án trong pool của chính bài nguồn. Đưa các file Parquet vào `data/predictions/` trên Hugging Face và thêm cấu hình bảng này vào Dataset Card. [Đề Milestone 3](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/matching/)
+
+- Bộ dữ liệu công khai trên Hugging Face: [QuangPhat101/arxiv-citation-matching](https://huggingface.co/datasets/QuangPhat101/arxiv-citation-matching)

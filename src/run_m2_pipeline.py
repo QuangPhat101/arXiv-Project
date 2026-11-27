@@ -21,8 +21,8 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
-from src.parser import parse_version
-from src.bibtex_parser import build_cross_version_citation_map, parse_version_bibtex
+from src.parser import load_version_tex, parse_version
+from src.bibtex_parser import build_cross_version_citation_map, fill_reference_fields, parse_version_bibtex
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +39,7 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
 
     errors: List[Dict[str, Any]] = []
     coverage: List[Dict[str, Any]] = []
+    bibtex_issues: List[Dict[str, Any]] = []
 
     paper_meta = None
     meta_path = p_dir / "metadata.json"
@@ -90,6 +91,7 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
     elements_list = []
     hierarchy_list = []
     entries_by_version = {}
+    sources_by_version = {}
 
     v_dirs = sorted([v for v in p_dir.iterdir() if v.is_dir() and v.name.startswith("v")],
                     key=lambda x: int(x.name[1:]) if x.name[1:].isdigit() else 0)
@@ -104,8 +106,11 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
     # 1. Collect BibTeX entries across all versions
     for v_dir in v_dirs:
         v_num = int(v_dir.name[1:]) if v_dir.name[1:].isdigit() else 1
+        version_issues = []
         try:
-            v_bib = parse_version_bibtex(v_dir, aid)
+            source = load_version_tex(v_dir)
+            sources_by_version[v_num] = source
+            v_bib = parse_version_bibtex(v_dir, aid, source=source, issues=version_issues)
             if v_bib:
                 entries_by_version[v_num] = v_bib
         except Exception as e:
@@ -115,6 +120,7 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
                 "stage": "parse_version_bibtex",
                 "message": str(e),
             })
+        bibtex_issues.extend({"arxiv_id": aid, "version": v_num, **issue} for issue in version_issues)
 
     # 2. Build cross-version citation map and union fields of duplicate entries
     bibtex_list = []
@@ -127,17 +133,10 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
                 orig_key = e["citation_key"]
                 canon_key = key_map.get((v_num, orig_key), orig_key)
                 if canon_key not in merged_entries:
-                    e_copy = dict(e)
-                    e_copy["citation_key"] = canon_key
-                    merged_entries[canon_key] = e_copy
+                    merged_entries[canon_key] = {**e, "citation_key": canon_key}
                 else:
-                    target = merged_entries[canon_key]
-                    for k, val in e.items():
-                        if k == "citation_key":
-                            continue
-                        if val is not None and (target.get(k) is None or target.get(k) == ""):
-                            target[k] = val
-        bibtex_list = list(merged_entries.values())
+                    fill_reference_fields(merged_entries[canon_key], e)
+        bibtex_list = [{k: v for k, v in row.items() if not k.startswith("_")} for row in merged_entries.values()]
 
     # 3. Parse LaTeX versions passing version-specific cite_map
     for v_dir in v_dirs:
@@ -148,17 +147,17 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
             if v == v_num
         }
 
-        tex_files = list(v_dir.glob("*.tex"))
-        if not tex_files:
+        source = sources_by_version.get(v_num)
+        if source is None or source[0] is None:
             coverage.append({
                 "arxiv_id": str(aid),
                 "version": v_num,
-                "status": "empty",
+                "status": "error" if source is None else "empty",
             })
             continue
 
         try:
-            el_list, hi_list = parse_version(v_dir, aid, v_num, cite_map=v_cite_map)
+            el_list, hi_list = parse_version(v_dir, aid, v_num, cite_map=v_cite_map, source=source)
             elements_list.extend(el_list)
             hierarchy_list.extend(hi_list)
             coverage.append({
@@ -186,6 +185,8 @@ def process_single_paper(paper_dir_str: str) -> Dict[str, Any]:
         "elements": elements_list,
         "hierarchy": hierarchy_list,
         "bibtex": bibtex_list,
+        "citation_key_map": key_map,
+        "bibtex_issues": bibtex_issues,
         "errors": errors,
         "coverage": coverage,
     }

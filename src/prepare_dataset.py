@@ -22,7 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -357,6 +357,38 @@ def _standardize_member_references(cfg: Dict[str, Any], member_papers: set[str])
     return pd.DataFrame(rows, columns=REF_COLUMNS)
 
 
+def explicit_arxiv_ids(entry):
+    metadata = " ".join(str(entry.get(column) or "") for column in ("url", "doi", "journal"))
+    return set(re.findall(
+        r"(?:arxiv\.org/(?:abs|pdf)/|arxiv\s*[:.]\s*)(\d{4}\.\d{4,5}|[a-z][a-z0-9.-]*/\d{7})",
+        metadata, re.I,
+    ))
+
+
+def automatic_labels(entries, refs, provenance):
+    refs_by_title = defaultdict(list)
+    refs_by_paper = defaultdict(set)
+    for ref in refs.to_dict("records"):
+        aid, target = ref["arxiv_id"], ref["ref_arxiv_id"]
+        refs_by_paper[aid].add(target)
+        if title := normalize_title(ref["ref_title"]):
+            refs_by_title[aid, title].append((target, extract_last_names(parse_authors(ref["ref_authors"]))))
+
+    for entry in entries:
+        aid, key = entry["arxiv_id"], entry["citation_key"]
+        matches = explicit_arxiv_ids(entry) & refs_by_paper[aid]
+        if not matches:
+            title = normalize_title(entry["title"])
+            authors = extract_last_names(parse_authors(entry["authors"]))
+            matches = {target for target, names in refs_by_title[aid, title] if authors & names}
+        gt = next(iter(matches)) if len(matches) == 1 else ""
+        yield {
+            "paper_arxiv_id": aid, "citation_key": key, "groundtruth_arxiv_id": gt,
+            "label_status": "matched" if gt else "none", "usable_label": True,
+            "label_kind": "auto", "label_provenance": provenance,
+        }
+
+
 def align_and_complete_labels(labels: pd.DataFrame, bibtex: pd.DataFrame, refs: pd.DataFrame) -> pd.DataFrame:
     keys = set(zip(bibtex["arxiv_id"], bibtex["citation_key"]))
     def label_signature(row):
@@ -396,34 +428,13 @@ def align_and_complete_labels(labels: pd.DataFrame, bibtex: pd.DataFrame, refs: 
             continue
         rows.append(row)
 
-    refs_by_title = defaultdict(list)
-    refs_by_paper = defaultdict(set)
-    for ref in refs.to_dict("records"):
-        refs_by_title[ref["arxiv_id"], normalize_title(ref["ref_title"])].append(ref)
-        refs_by_paper[ref["arxiv_id"]].add(ref["ref_arxiv_id"])
-
     auto_papers = set(labels.loc[labels["label_kind"] == "auto", "paper_arxiv_id"])
-    inferred = 0
-    for entry in bibtex[bibtex["arxiv_id"].isin(auto_papers)].to_dict("records"):
-        aid, key = entry["arxiv_id"], entry["citation_key"]
-        if (aid, key) in occupied:
-            continue
-        raw_ids = re.findall(r"(?:arxiv\.org/(?:abs|pdf)/|arxiv[:.])\s*(\d{4}\.\d{4,5})",
-                             f"{entry['url']} {entry['doi']}", re.I)
-        matches = set(raw_ids) & refs_by_paper[aid]
-        if not matches:
-            title = normalize_title(entry["title"])
-            authors = extract_last_names(entry["authors"])
-            if title:
-                matches = {candidate["ref_arxiv_id"] for candidate in refs_by_title[aid, title]
-                           if authors & extract_last_names(candidate["ref_authors"])}
-        gt = next(iter(matches)) if len(matches) == 1 else ""
-        rows.append({"paper_arxiv_id": aid, "citation_key": key, "groundtruth_arxiv_id": gt,
-                     "label_status": "matched" if gt else "none", "usable_label": True,
-                     "label_kind": "auto", "label_provenance": "auto_bibtex_completion"})
-        inferred += 1
+    unlabelled = (entry for entry in bibtex[bibtex["arxiv_id"].isin(auto_papers)].to_dict("records")
+                  if (entry["arxiv_id"], entry["citation_key"]) not in occupied)
+    completed = list(automatic_labels(unlabelled, refs, "auto_bibtex_completion"))
+    rows.extend(completed)
 
-    print(f"Recovered keys: {recovered}, automatic completions: {inferred}, missing manual keys: {missing_manual}", flush=True)
+    print(f"Recovered keys: {recovered}, automatic completions: {len(completed)}, missing manual keys: {missing_manual}", flush=True)
     return pd.DataFrame(rows, columns=LABEL_COLUMNS)
 
 
@@ -450,10 +461,133 @@ def standardize_all_members(members_dir: Path, allow_agent_reviewed: bool = Fals
         refs_df.to_parquet(out_dir / "references.parquet", index=False)
 
 
+def reconcile_reviewed_labels(approved, bibtex, changes):
+    entries = defaultdict(dict)
+    for item in bibtex.to_dict("records"):
+        entries[item["arxiv_id"]][item["citation_key"]] = item
+    aliases = defaultdict(set)
+    for item in changes.itertuples(index=False):
+        aliases[item.arxiv_id, item.source_key].add(item.citation_key)
+
+    resolved = defaultdict(list)
+    decisions = []
+    for label in approved.to_dict("records"):
+        aid, key = label["paper_arxiv_id"], label["citation_key"]
+        remaining = entries[aid]
+        candidates = (aliases[aid, key] | {key}) & remaining.keys()
+        if len(candidates) != 1:
+            known_id = _clean_str(label["groundtruth_arxiv_id"])
+            id_matches = {candidate for candidate in candidates if known_id in explicit_arxiv_ids(remaining[candidate])}
+            title = normalize_title(label["citation_title"])
+            authors = extract_last_names(parse_authors(label["citation_authors"]))
+            metadata_matches = {
+                candidate for candidate in (candidates or remaining.keys())
+                if title and title == normalize_title(remaining[candidate]["title"])
+                and authors & extract_last_names(parse_authors(remaining[candidate]["authors"]))
+            }
+            if len(id_matches) == 1:
+                candidates = id_matches
+            elif len(metadata_matches) == 1:
+                candidates = metadata_matches
+        evidence = {"label_status": label["label_status"],
+                    "groundtruth_arxiv_id": _clean_str(label["groundtruth_arxiv_id"])}
+        if len(candidates) != 1:
+            status = "ambiguous" if candidates else "outside_exported_bibliography"
+            decisions.append({"arxiv_id": aid, "source_key": key, "decision": status,
+                              "candidate_keys": sorted(candidates), **evidence})
+            continue
+        canonical = next(iter(candidates))
+        resolved[aid, canonical].append((key, {**label, "citation_key": canonical}))
+        if canonical != key:
+            decisions.append({"arxiv_id": aid, "source_key": key, "decision": "renamed",
+                              "citation_key": canonical, **evidence})
+
+    rows = []
+    for (aid, canonical), options in resolved.items():
+        answers = {(label["label_status"], _clean_str(label["groundtruth_arxiv_id"])) for _, label in options}
+        if len(answers) != 1:
+            decisions.append({"arxiv_id": aid, "citation_key": canonical, "decision": "conflicting_reviewed_answers",
+                              "source_keys": [key for key, _ in options], "answers": sorted(answers)})
+            continue
+        if len(options) > 1:
+            decisions.append({"arxiv_id": aid, "citation_key": canonical, "decision": "duplicate_reviewed_answer",
+                              "source_keys": [key for key, _ in options]})
+        rows.append(options[0][1])
+    return pd.DataFrame(rows, columns=LABEL_COLUMNS), decisions
+
+
+def standardize_from_hf_tables(tables_dir: Path, reviewed_dir: Path, members_dir: Path):
+    partitions = pd.read_csv(reviewed_dir / "partitions.csv", dtype={"paper_arxiv_id": str})
+    if partitions["paper_arxiv_id"].duplicated().any() or set(partitions["member"]) != set(MEMBER_SOURCES):
+        raise ValueError("Reviewed partitions must assign each paper to exactly one member")
+    if not partitions["partition"].isin(("train", "valid", "test")).all():
+        raise ValueError("Invalid reviewed split")
+    holdouts = partitions[partitions["partition"].ne("train")]
+    expected_holdouts = {(member, split, kind): 1 for member in MEMBER_SOURCES
+                         for split in ("valid", "test") for kind in ("manual", "auto")}
+    if holdouts.groupby(["member", "partition", "label_kind"]).size().to_dict() != expected_holdouts:
+        raise ValueError("Every member needs one manual and one automatic paper in each holdout")
+
+    paper_ids = partitions["paper_arxiv_id"].tolist()
+    filters = [("arxiv_id", "in", paper_ids)]
+    bibtex = pd.read_parquet(tables_dir / "data/bibtex", filters=filters)
+    refs = pd.read_parquet(tables_dir / "data/references", filters=filters)
+    changes = pd.read_parquet(tables_dir / "citation_key_changes.parquet", filters=filters)
+    if bibtex.duplicated(["arxiv_id", "citation_key"]).any() or refs.duplicated(["arxiv_id", "ref_arxiv_id"]).any():
+        raise ValueError("Canonical tables contain duplicate keys")
+    for name, table in (("bibtex", bibtex), ("references", refs)):
+        missing = set(paper_ids) - set(table["arxiv_id"])
+        if missing:
+            raise ValueError(f"Missing canonical {name} for selected papers: {sorted(missing)}")
+
+    reviewed = pd.read_parquet(reviewed_dir / "labels.parquet")
+    approved = reviewed[reviewed["label_kind"].eq("manual") & reviewed["usable_label"]]
+    if not approved["label_provenance"].eq("human").all():
+        raise ValueError("Manual release labels require human approval")
+    expected_manual = set(partitions.loc[partitions["label_kind"].eq("manual"), "paper_arxiv_id"])
+    if set(approved["paper_arxiv_id"]) != expected_manual:
+        raise ValueError("Reviewed manual labels disagree with the partition manifest")
+
+    bibtex["is_cited"] = None
+    manual, decisions = reconcile_reviewed_labels(approved, bibtex, changes)
+    auto_papers = set(partitions.loc[partitions["label_kind"].eq("auto"), "paper_arxiv_id"])
+    auto_entries = bibtex[bibtex["arxiv_id"].isin(auto_papers)].to_dict("records")
+    automatic = pd.DataFrame(automatic_labels(auto_entries, refs, "auto_m2"), columns=LABEL_COLUMNS)
+    if set(zip(automatic["paper_arxiv_id"], automatic["citation_key"])) != {
+        (entry["arxiv_id"], entry["citation_key"]) for entry in auto_entries
+    }:
+        raise ValueError("Automatic labels must cover every canonical BibTeX key in their papers")
+    labels = pd.concat([manual, automatic], ignore_index=True)
+    for member, rows in partitions.groupby("member"):
+        ids = rows["paper_arxiv_id"]
+        target = members_dir / member
+        target.mkdir(parents=True, exist_ok=True)
+        labels[labels["paper_arxiv_id"].isin(ids)].to_parquet(target / "labels.parquet", index=False)
+        bibtex[bibtex["arxiv_id"].isin(ids)].to_parquet(target / "bibtex.parquet", index=False)
+        refs[refs["arxiv_id"].isin(ids)].to_parquet(target / "references.parquet", index=False)
+
+    retained_keys = pd.MultiIndex.from_frame(bibtex.rename(columns={"arxiv_id": "paper_arxiv_id"})[
+        ["paper_arxiv_id", "citation_key"]])
+    old_keys = pd.MultiIndex.from_frame(reviewed[["paper_arxiv_id", "citation_key"]])
+    old_outside = reviewed.loc[reviewed["usable_label"] & ~old_keys.isin(retained_keys)]
+    return partitions, {
+        "source_tables": str(tables_dir),
+        "reviewed_dataset": str(reviewed_dir),
+        "manual_labels_before": len(approved),
+        "manual_labels_after": len(manual),
+        "manual_decision_counts": dict(Counter(item["decision"] for item in decisions)),
+        "manual_decisions": decisions,
+        "previous_usable_keys_without_identical_exported_key": old_outside["label_kind"].value_counts().to_dict(),
+        "automatic_rows": len(automatic),
+        "automatic_status_counts": automatic["label_status"].value_counts().to_dict(),
+    }
+
+
 def build_unified_dataset(
     members_dir: Path,
     output_dir: Path,
     sync_dir: Optional[Path] = None,
+    fixed_partitions: Optional[pd.DataFrame] = None,
 ) -> Dict[str, Any]:
     """Merge standardized member tables into one canonical training dataset."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -462,6 +596,7 @@ def build_unified_dataset(
     all_refs: List[pd.DataFrame] = []
     partitions: Dict[str, Dict[str, Any]] = {}
     bibtex_lookup: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    fixed = fixed_partitions.set_index("paper_arxiv_id") if fixed_partitions is not None else None
 
     for member in MEMBER_SOURCES:
         m_dir = members_dir / member
@@ -484,6 +619,10 @@ def build_unified_dataset(
         for kind in ("manual", "auto"):
             sub = lbl_df[lbl_df["label_kind"] == kind]
             papers = sorted(sub["paper_arxiv_id"].unique())
+            if fixed is not None:
+                expected = fixed.index[fixed["member"].eq(member) & fixed["label_kind"].eq(kind)]
+                if set(papers) != set(expected):
+                    raise ValueError(f"{member}/{kind}: labels disagree with reviewed paper assignments")
             if partitions.keys() & set(papers):
                 raise ValueError(f"Overlapping papers in {member}/{kind}")
             if kind == "manual":
@@ -497,7 +636,8 @@ def build_unified_dataset(
                     "paper_arxiv_id": aid,
                     "member": member,
                     "label_kind": kind,
-                    "partition": ("valid", "test")[idx] if idx < 2 else "train",
+                    "partition": fixed.at[aid, "partition"] if fixed is not None else
+                    (("valid", "test")[idx] if idx < 2 else "train"),
                     "references_available": aid in available_refs,
                 }
 
@@ -559,6 +699,8 @@ def build_unified_dataset(
     labels_out = pd.DataFrame(final_labels)
     labels_out["citation_year"] = labels_out["citation_year"].astype("Int64")
     partitions_out = pd.DataFrame(list(partitions.values()))
+    if fixed is not None:
+        partitions_out = partitions_out.set_index("paper_arxiv_id").loc[fixed.index].reset_index()
 
     labels_out.to_parquet(output_dir / "labels.parquet", index=False)
     refs_merged.to_parquet(output_dir / "references.parquet", index=False)
@@ -632,10 +774,28 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=ROOT / "kaggle_dataset")
     parser.add_argument("--sync-dir", type=Path, default=ROOT / "data/group_training_seed42")
     parser.add_argument("--allow-agent-reviewed", action="store_true", help="Include agent-reviewed draft labels with their provenance")
+    parser.add_argument("--hf-tables-dir", type=Path, help="Canonical M1/M2 export with the data folder and key changes")
+    parser.add_argument("--reviewed-dataset", type=Path, help="Approved labels and partitions for the canonical release")
     args = parser.parse_args()
 
-    standardize_all_members(args.members_dir, args.allow_agent_reviewed)
-    build_unified_dataset(args.members_dir, args.output_dir, args.sync_dir)
+    if bool(args.hf_tables_dir) != bool(args.reviewed_dataset):
+        parser.error("Use --hf-tables-dir and --reviewed-dataset together")
+    fixed_partitions = None
+    if args.hf_tables_dir:
+        if args.allow_agent_reviewed:
+            parser.error("Canonical release mode requires human-reviewed manual labels")
+        if args.reviewed_dataset.resolve() in {args.output_dir.resolve(), args.sync_dir.resolve()}:
+            parser.error("Use separate output and sync directories for the rebuilt dataset")
+        fixed_partitions, audit = standardize_from_hf_tables(
+            args.hf_tables_dir, args.reviewed_dataset, args.members_dir,
+        )
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        (args.output_dir / "label_reconciliation.json").write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
+        )
+    else:
+        standardize_all_members(args.members_dir, args.allow_agent_reviewed)
+    build_unified_dataset(args.members_dir, args.output_dir, args.sync_dir, fixed_partitions)
     write_training_archive(args.output_dir)
 
 

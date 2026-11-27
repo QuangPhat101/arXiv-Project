@@ -43,6 +43,9 @@ SCHEMAS = {
     ]),
 }
 PAPERS_PER_SHARD = 250
+CITATION_MAP_SCHEMA = pa.schema([
+    ARXIV_ID, ("version", pa.int32()), ("source_key", pa.string()), ("citation_key", pa.string()),
+])
 
 
 def append_paper(rows, arxiv_id, paper):
@@ -85,6 +88,8 @@ def export_tables(data_dirs, output_dir, workers):
     row_counts = Counter()
     coverage = Counter()
     errors = []
+    bibtex_issues = []
+    key_changes = []
     missing_references = []
     with TemporaryDirectory(dir=output_dir.parent) as temp, ProcessPoolExecutor(max_workers=workers) as pool:
         staging = Path(temp) / "dataset"
@@ -97,6 +102,13 @@ def export_tables(data_dirs, output_dir, workers):
                 append_paper(rows, arxiv_id, paper)
                 coverage.update(version["status"] for version in paper["coverage"])
                 errors.extend(paper["errors"])
+                bibtex_issues.extend(paper["bibtex_issues"])
+                mapping = paper["citation_key_map"]
+                changed = {original for (_, original), canonical in mapping.items() if original != canonical}
+                key_changes.extend(
+                    {"arxiv_id": arxiv_id, "version": version, "source_key": original, "citation_key": canonical}
+                    for (version, original), canonical in mapping.items() if original in changed
+                )
                 if not (path / "references.json").is_file():
                     missing_references.append(arxiv_id)
 
@@ -109,12 +121,17 @@ def export_tables(data_dirs, output_dir, workers):
                 row_counts[name] += table.num_rows
             print(f"Exported {offset + len(batch)}/{len(papers)} papers", flush=True)
 
+        pq.write_table(pa.Table.from_pylist(key_changes, schema=CITATION_MAP_SCHEMA),
+                       staging / "citation_key_changes.parquet", compression="zstd")
         (staging / "audit.json").write_text(json.dumps({
             "source_papers": len(papers),
             "rows": dict(row_counts),
             "version_coverage": dict(coverage),
             "papers_missing_references_file": missing_references,
             "errors": errors,
+            "bibtex_issue_counts": dict(Counter(issue["kind"] for issue in bibtex_issues)),
+            "bibtex_issues": bibtex_issues,
+            "citation_key_change_rows": len(key_changes),
         }, indent=2) + "\n", encoding="utf-8")
         staging.rename(output_dir)
 

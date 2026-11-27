@@ -9,8 +9,12 @@ SEC_RE = re.compile(r'\\(chapter|section|subsection|subsubsection)\*?\{([^}]*)\}
 LEVEL = {'chapter': 1, 'section': 2, 'subsection': 3, 'subsubsection': 4}
 # (?!\}) skips macro definitions like \newcommand{\bdoc}{\begin{document}}
 BODY_RE = re.compile(r'\\begin\{document\}(?!\})(.*?)\\end\{document\}(?!\})', re.S)
+CITE_RE = re.compile(
+    r'(\\(?:cite(?!text\b)[a-zA-Z]*|(?:no|paren|text|auto|foot|smart|full|super|online)cite)'
+    r'\*?(?:\s*\[[^\]]*\]){0,2})\s*\{([^{}]*)\}', re.I)
 PROTECT_RE = re.compile(
-    r'\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\url\{[^}]*\}|https?://\S*[^\s.,;)]|\\(?:cite|ref|eqref|label)\w*\{[^}]*\}', re.S)
+    r'\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\url\{[^}]*\}|https?://\S*[^\s.,;)]|\\(?:ref|eqref|label)\w*\{[^}]*\}|'
+    + CITE_RE.pattern, re.S | re.I)
 ABBR = ['Fig.', 'Figs.', 'Eq.', 'Eqs.', 'Sec.', 'Tab.', 'et al.', 'i.e.', 'e.g.', 'vs.', 'etc.', 'cf.', 'resp.', 'Ref.']
 
 FLOAT_RE = re.compile(r'\\begin\{(figure|table)\*?\}.*?\\end\{\1\*?\}', re.S)
@@ -20,10 +24,11 @@ MATH_RE = re.compile(
     r'|(?<!\\)\\\[(.*?)\\\]|\$\$(.*?)\$\$', re.S)
 LIST_RE = re.compile(r'\\(begin|end)\{(itemize|enumerate|description)\}|\\item\b(?:\s*\[[^\]]*\])?')
 CMD_RE = re.compile(r'\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})*')
-CITE_RE = re.compile(r'(\\cite[a-zA-Z]*\*?(?:\[[^\]]*\]){0,2})\{([^}]*)\}')
-# Bibliography is stored in the bibtex table, not in the content tree.
-BIB_RE = re.compile(r'\\begin\{thebibliography\}.*?\\end\{thebibliography\}'
-                    r'|\\(?:bibliography|bibliographystyle|addbibresource)\{[^}]*\}|\\printbibliography(?:\[[^\]]*\])?', re.S)
+BIB_BLOCK_RE = re.compile(r'\\begin\s*\{thebibliography\}.*?\\end\s*\{thebibliography\}', re.S)
+BIB_RESOURCE_RE = re.compile(r'\\(?:bibliography|addbibresource)\s*(?:\[[^\]]*\]\s*)?\{([^{}]+)\}')
+BIB_INPUT_RE = re.compile(r'\\(?:input|include)\s*\{([^{}]+\.bbl)\}', re.I)
+BIB_RE = re.compile(BIB_BLOCK_RE.pattern + '|' + BIB_RESOURCE_RE.pattern + '|' + BIB_INPUT_RE.pattern +
+                    r'|\\bibliographystyle\s*\{[^}]*\}|\\printbibliography(?:\s*\[[^\]]*\])?', re.S)
 BIB_TITLES = {'references', 'reference', 'bibliography'}
 # Formatting that does not change meaning: \textbf{x} -> x, {\bf x} -> x.
 FORMAT_RE = re.compile(r'\\(?:textbf|textit|textsl|textsc|textrm|textsf|textnormal|emph|underline)\{([^{}]*)\}'
@@ -100,7 +105,15 @@ def split_items(body):
     return [i for i in items if i.strip()]
 
 def strip_comments(text):
-    return re.sub(r'(?<!\\)%.*', '', text)
+    return re.sub(r'((?:^|[^\\\r\n])(?:\\\\)*)%[^\r\n]*', r'\1', text, flags=re.M)
+
+
+def read_source_text(path):
+    data = Path(path).read_bytes()
+    try:
+        return data.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return data.decode('cp1252', errors='replace')
 
 
 def find_main_tex(vdir):
@@ -110,29 +123,49 @@ def find_main_tex(vdir):
     \\documentclass or \\begin{document} may also live in an \\input-ed file, so the main file
     is only identifiable after expansion.
     """
+    vdir = Path(vdir).resolve()
     best, best_len = None, -1
-    for p in sorted(Path(vdir).rglob('*.tex')):
-        raw = strip_comments(p.read_text(errors='ignore'))
+    for p in sorted(vdir.rglob('*.tex')):
+        if not p.resolve().is_relative_to(vdir):
+            continue
+        raw = strip_comments(read_source_text(p))
         if r'\documentclass' not in raw and r'\begin{document}' not in raw and r'\end{document}' not in raw:
             continue
-        m = BODY_RE.search(expand_inputs(p, p.parent))
+        m = BODY_RE.search(expand_inputs(p, p.parent, source_root=vdir))
         if m and len(m.group(1)) > best_len:
             best, best_len = p, len(m.group(1))
     return best
 
 
-def expand_inputs(path, root, seen=None):
+def expand_inputs(path, root, seen=None, *, source_root=None):
+    path, root = Path(path).resolve(), Path(root).resolve()
+    source_root = Path(source_root).resolve() if source_root is not None else root
     seen = set() if seen is None else seen
-    if path in seen or not path.exists():
+    if path in seen or not path.is_relative_to(source_root) or not path.is_file():
         return ''
     seen.add(path)
-    text = strip_comments(path.read_text(errors='ignore'))
+    text = strip_comments(read_source_text(path))
 
-    def repl(m):
-        p = root / (m.group(1) or m.group(2)).strip()
-        # \subfile targets are standalone documents: keep only their body
-        return extract_body(expand_inputs(p if p.suffix == '.tex' else Path(str(p) + '.tex'), root, seen))
-    return INPUT_RE.sub(repl, text)
+    def repl(match):
+        name = (match.group(1) or match.group(2)).strip()
+        if Path(name).anchor:
+            return ''
+        for base in dict.fromkeys((root, path.parent)):
+            for candidate in (base / name, base / (name + '.tex')):
+                candidate = candidate.resolve()
+                if candidate.is_relative_to(source_root) and candidate.is_file():
+                    expanded = expand_inputs(candidate, root, seen, source_root=source_root)
+                    return extract_body(expanded) if match.group().startswith(r'\subfile') else expanded
+        return match.group() if BIB_INPUT_RE.fullmatch(match.group()) else ''
+
+    expanded = INPUT_RE.sub(repl, text)
+    seen.remove(path)
+    return expanded
+
+
+def load_version_tex(vdir):
+    main = find_main_tex(vdir)
+    return main, expand_inputs(main, main.parent, source_root=vdir) if main else ''
 
 
 def extract_body(tex):
@@ -162,16 +195,16 @@ def make_id(arxiv_id, kind, content):
     return f"{arxiv_id}#{hashlib.sha1(f'{kind}|{content}'.encode()).hexdigest()[:12]}"
 
 
-def parse_version(vdir, arxiv_id, version, cite_map=None):
+def parse_version(vdir, arxiv_id, version, cite_map=None, *, source=None):
     """Return (elements, hierarchy) rows for one version directory.
 
     cite_map maps this version's original citation keys to canonical keys; citations are
     rewritten before IDs are computed so content citing the same work dedups across versions.
     """
-    main = find_main_tex(vdir)
+    main, text = load_version_tex(vdir) if source is None else source
     if main is None:  # PDF-only version
         return [], []
-    body = extract_body(expand_inputs(main, main.parent))
+    body = extract_body(text)
     body = canonical_cites(BIB_RE.sub('\n\n', body), cite_map)
     elements, hierarchy = {}, []
 

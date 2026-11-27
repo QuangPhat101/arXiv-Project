@@ -19,11 +19,10 @@
     "2505.10672": 50
   },
   "manual_statuses": {
-    "unresolved": 88,
-    "none": 40,
+    "none": 128,
     "matched": 69
   },
-  "manual_human_verified": 0,
+  "manual_human_verified": 100,
   "auto_papers": 495,
   "auto_entries": 55794,
   "auto_cited_entries": 25324,
@@ -40,7 +39,7 @@
   "matcher_branch_commit": "73f06ee8012cad4173e63535082b33ad63498d68",
   "threshold": 0.75,
   "manual_agent_review_statuses": {
-    "unresolved_after_arxiv_search": 88,
+    "no_matching_crawled_reference": 88,
     "arxiv_metadata_outside_pool": 19,
     "source_and_pool_match": 69,
     "explicit_id_outside_pool": 6,

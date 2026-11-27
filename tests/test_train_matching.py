@@ -1,7 +1,9 @@
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 
 from src.export_predictions import PREDICTIONS_SCHEMA, rank_paper
+from src.prepare_dataset import automatic_labels, reconcile_reviewed_labels
 from src.train_matching import FEATURE_NAMES, _process_paper_chunk, evaluate_queries, tune_threshold
 
 
@@ -61,3 +63,31 @@ def test_export_predictions_keeps_only_ground_truth_from_same_paper_pool():
     assert result["groundtruth_arxiv_id"].to_pylist() == ["2401.00001", None]
     assert result["cand_1"].to_pylist() == ["2401.00001", "2401.00001"]
     assert result["cand_2"].to_pylist() == [None, None]
+
+
+def test_release_labels_preserve_reviewed_key_identity_and_use_same_paper_pool():
+    entries = pd.DataFrame([
+        {"arxiv_id": "paper", "citation_key": "first", "title": "Shared title", "authors": ["Alice Smith"],
+         "url": "https://arxiv.org/abs/2201.01000"},
+        {"arxiv_id": "paper", "citation_key": "second", "title": "Shared title", "authors": ["Bob Jones"]},
+    ])
+    references = pd.DataFrame([
+        {"arxiv_id": "paper", "ref_arxiv_id": "2201.01000", "ref_title": "Shared title", "ref_authors": ["Alice Smith"]},
+        {"arxiv_id": "other", "ref_arxiv_id": "2202.01000", "ref_title": "Shared title", "ref_authors": ["Bob Jones"]},
+    ])
+    automatic = list(automatic_labels(entries.to_dict("records"), references, "auto_m2"))
+    assert [row["groundtruth_arxiv_id"] for row in automatic] == ["2201.01000", ""]
+    assert all(row["usable_label"] for row in automatic)
+
+    reviewed = pd.DataFrame([{
+        "paper_arxiv_id": "paper", "citation_key": "old", "citation_title": "Shared title",
+        "citation_authors": ["Bob Jones"], "label_status": "none", "groundtruth_arxiv_id": "",
+        "usable_label": True, "label_kind": "manual", "label_provenance": "human",
+    }])
+    changes = pd.DataFrame([{"arxiv_id": "paper", "source_key": "old", "citation_key": key}
+                            for key in ("first", "second")])
+    manual, decisions = reconcile_reviewed_labels(reviewed, entries, changes)
+    assert manual["citation_key"].tolist() == ["second"]
+    assert manual["label_provenance"].tolist() == ["human"]
+    assert decisions[0]["decision"] == "renamed"
+    assert decisions[0]["label_status"] == "none"
