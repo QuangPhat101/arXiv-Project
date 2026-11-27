@@ -112,7 +112,7 @@ Báo cáo phân tích dữ liệu, thống kê tập ngữ liệu và đánh gi�
 
 ## 8. Huấn luyện Citation Matching cho Milestone 3
 
-Từ thư mục gốc, chạy các lệnh sau trong PowerShell. Bước tạo thêm nhãn dùng dữ liệu thô của Phát. Bước chuẩn hóa dùng các gói bàn giao trong `parquet_bao`, `parquet_Khanh`, `parquet_khoi`, cùng các nhánh nhãn đang có trong Git.
+Từ thư mục gốc, chạy các lệnh sau trong PowerShell. Bước tạo thêm nhãn dùng dữ liệu thô của Phát. Trước khi chuẩn hóa, đặt các gói bàn giao của nhóm vào `parquet_bao`, `parquet_Khanh` và `parquet_khoi`, cùng bản `manual_5_review.csv` đã duyệt của Phát trong thư mục nhãn của Phát. Danh sách tệp và các nhánh nhãn dự phòng nằm trong `MEMBER_SOURCES` của [src/prepare_dataset.py](src/prepare_dataset.py).
 
 ```powershell
 .\venv\Scripts\python.exe -m pip install -r src/requirements-m3.txt
@@ -121,10 +121,36 @@ Từ thư mục gốc, chạy các lệnh sau trong PowerShell. Bước tạo th
 .\venv\Scripts\python.exe -B -m src.train_matching --dataset-dir kaggle_dataset --output-dir outputs_m3/audited
 ```
 
-`kaggle_dataset` chứa Parquet nhãn, danh sách ứng viên trích dẫn, danh sách bài theo từng tập, thống kê và gói code `m3_training_code.zip`. `train` dùng nhãn tự động. `valid` và `test` chỉ dùng nhãn tay đã duyệt và tách theo bài nguồn. Khi đáp án arXiv vắng trong pool hoặc thiếu metadata BibTeX để xếp hạng, mẫu vẫn được tính trong MRR@5 và Hit@K.
+`kaggle_dataset` chứa Parquet nhãn, danh sách ứng viên trích dẫn, danh sách bài theo từng tập, thống kê và gói code `m3_training_code.zip`. Mỗi tập `valid` và `test` có một bài nhãn tay và một bài nhãn tự động từ mỗi thành viên. Các bài còn lại thuộc tập `train`. MRR@5 dùng toàn bộ mục đã gắn nhãn trong tập tương ứng. Báo cáo cũng có `mrr@5_matched` tính riêng các mục có đáp án arXiv trong pool.
+
+Lệnh chuẩn hóa mặc định yêu cầu ít nhất 20 nhãn đã được người rà xác nhận cho mỗi bài trong tập nhãn tay. Khi chạy thử với `--allow-agent-reviewed`, manifest và báo cáo ghi riêng số nhãn do công cụ rà để nhóm kiểm tra trước khi chốt kết quả.
+
+Nhãn `matched` giữ ID arXiv trong danh sách tham chiếu của đúng bài nguồn. Nhãn `none` ghi nhận mục đã được xét mà chưa xác định được mục khớp trong danh sách đó. Cột `usable_label` cho biết mục nào được dùng trong huấn luyện và đánh giá. Cột `label_provenance` ghi nguồn nhãn.
+
+Mô hình phân loại từng cặp gồm một mục BibTeX và một tham chiếu thuộc cùng bài nguồn. Các đặc trưng `exact_title`, `token_cosine`, `raw_seq_ratio` và `char_ngram_tfidf` so tiêu đề theo khớp chính xác, tần suất từ, thứ tự ký tự và cụm ký tự. `author_jaccard` đo phần họ tác giả giao nhau. `year_diff` và `year_score` biểu diễn chênh lệch năm. `roman_mismatch` giúp phân biệt các phần của tài liệu có tiêu đề gần giống nhau.
 
 Với bài tạo trên 50.000 cặp ứng viên, trainer lấy mẫu trích dẫn theo seed 42 và giữ toàn bộ ứng viên cho từng trích dẫn đã chọn. Giới hạn này chỉ áp dụng trên tập train.
 
 `outputs_m3/audited` chứa trọng số Logistic Regression, model XGBoost, điểm kiểm thử và dự đoán top 5 trên tập test. Có thể chạy cùng pipeline trên Kaggle bằng [notebook huấn luyện](notebooks/train_citation_matching_kaggle.ipynb).
 
 Để chạy trên Kaggle, tạo một Dataset từ năm file trong `kaggle_dataset`. Import notebook huấn luyện, chọn **Add Input** để gắn Dataset rồi chạy **Save & Run All**. Kết quả nằm trong `/kaggle/working/outputs_m3`. Nếu bật GPU cho XGBoost, đặt `USE_GPU = True` trong ô huấn luyện.
+
+### Xuất năm bảng M1 và M2
+
+Chạy từ thư mục gốc. Mỗi đường dẫn trong `--data-dir` chứa các thư mục bài báo có `metadata.json`, `references.json` và các thư mục phiên bản.
+
+```powershell
+.\venv\Scripts\python.exe -B -m src.export_hf_tables --data-dir data/data --output-dir outputs_m3/hf_phat_m1_m2
+```
+
+Có thể truyền nhiều thư mục dữ liệu sau `--data-dir`. Kết quả gồm năm bảng Parquet chia phần trong `data/` và `audit.json` ghi số dòng, trạng thái xử lý phiên bản và lỗi đọc dữ liệu. [Notebook Colab](notebooks/run_m2_m3_colab_kaggle.ipynb) cũng dùng trình xuất này.
+
+### Xuất bảng dự đoán Parquet
+
+Lệnh sau dùng Logistic Regression để xếp hạng các mục BibTeX của những bài trong tập chia. Ví dụ dùng bộ huấn luyện trong `kaggle_dataset` và bảng BibTeX nhóm ở `outputs_m3/hf_group_m1_m2/data/bibtex`. Chạy lệnh sau khi đồng bộ khóa nhãn với bảng BibTeX đó. Có thể truyền một hoặc nhiều file hoặc thư mục Parquet vào `--bibtex`.
+
+```powershell
+.\venv\Scripts\python.exe -B -m src.export_predictions --dataset-dir kaggle_dataset --bibtex outputs_m3/hf_group_m1_m2/data/bibtex --model outputs_m3/audited/logreg_model.json --output outputs_m3/predictions/part-00000.parquet
+```
+
+Để xuất bản nộp, dùng model fit trên bản chia tương ứng với `--dataset-dir` và dùng các bảng M2 đầy đủ cho các bài đã chọn. Cột `groundtruth_arxiv_id` lấy từ nhãn có đáp án trong pool của chính bài nguồn. Đưa các file Parquet vào `data/predictions/` trên Hugging Face và thêm cấu hình bảng này vào Dataset Card. [Đề Milestone 3](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/matching/)

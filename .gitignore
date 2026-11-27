@@ -31,4 +31,7 @@ benchmarks/output/
 *.rar
 kaggle_dataset/
 outputs_m3/
+/models/
+/outputs/
 parquet_*/
+image.png

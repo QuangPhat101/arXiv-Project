@@ -1,7 +1,7 @@
 """Train and evaluate Logistic Regression (baseline) and XGBoost (upgraded) citation matchers.
 
 Designed to run both on Kaggle (auto-detecting /kaggle/input/*) and locally.
-Fits on automatic labels and evaluates on separate, verified source papers.
+Fits on the M3 training papers and evaluates on separate manual and automatic papers.
 """
 
 from __future__ import annotations
@@ -258,6 +258,7 @@ def _process_paper_chunk(
                 "paper_arxiv_id": aid,
                 "citation_key": row["citation_key"],
                 "label_kind": row["label_kind"],
+                "label_provenance": row.get("label_provenance"),
                 "member": row["member"],
                 "groundtruth_arxiv_id": gt,
                 "ref_ids": candidate_ids,
@@ -458,7 +459,8 @@ def evaluate_queries(
         "positive_queries": pos_n,
         "positives_in_pool": sum(q["gt_in_pool"] for q in queries),
         "queries_missing_bibtex": sum(not q["bibtex_available"] for q in queries),
-        "mrr@5": float(np.mean(rr_pos)) if pos_n else None,
+        "mrr@5": float(sum(rr_pos) / len(queries)) if queries else None,
+        "mrr@5_matched": float(np.mean(rr_pos)) if pos_n else None,
         "hit@1": float(hit1_pos / pos_n) if pos_n else None,
         "hit@5": float(hit5_pos / pos_n) if pos_n else None,
     }
@@ -485,6 +487,10 @@ def evaluate_by_subset(
     out = {"all": evaluate_queries(queries, score_key, threshold)}
     for member in sorted({q["member"] for q in queries}):
         out[member] = evaluate_queries([q for q in queries if q["member"] == member], score_key, threshold)
+    for kind in ("manual", "auto"):
+        subset = [q for q in queries if q["label_kind"] == kind]
+        if subset:
+            out[kind] = evaluate_queries(subset, score_key, threshold)
     return out
 
 
@@ -531,12 +537,15 @@ def run_training(
     if labels_df.duplicated(["paper_arxiv_id", "citation_key"]).any():
         raise ValueError("Dataset contains duplicate labels")
     split_counts = labels_df.groupby("paper_arxiv_id")["partition"].nunique(dropna=False)
-    auto = labels_df["label_kind"].eq("auto")
-    manual = labels_df["label_kind"].eq("manual")
-    train_rows = labels_df["partition"].eq("train")
-    holdout_rows = labels_df["partition"].isin(("valid", "test"))
-    if (split_counts != 1).any() or not ((auto & train_rows) | (manual & holdout_rows)).all():
-        raise ValueError("Split disjoint source papers into automatic train and manual valid/test")
+    if (split_counts != 1).any() or not labels_df["partition"].isin(("train", "valid", "test")).all():
+        raise ValueError("Assign each paper to exactly one of train, valid, or test")
+    paper_splits = labels_df[["paper_arxiv_id", "member", "partition", "label_kind"]].drop_duplicates()
+    members = paper_splits["member"].unique()
+    holdouts = paper_splits[paper_splits["partition"].isin(("valid", "test"))]
+    holdout_counts = holdouts.groupby(["member", "partition", "label_kind"]).size().to_dict()
+    expected = {(member, split, kind): 1 for member in members for split in ("valid", "test") for kind in ("manual", "auto")}
+    if holdout_counts != expected:
+        raise ValueError("Each member needs one manual and one automatic paper in each holdout split")
     if refs_df.duplicated(["arxiv_id", "ref_arxiv_id"]).any() or not refs_df["ref_arxiv_id"].map(bool).all():
         raise ValueError("Dataset contains duplicate or empty candidate IDs")
 
@@ -557,9 +566,6 @@ def run_training(
         aid = rec["paper_arxiv_id"]
         gt = rec["groundtruth_arxiv_id"]
         if split == "train":
-            if pd.notna(rec["is_cited"]) and not rec["is_cited"]:
-                skipped_train["not_cited"] += 1
-                continue
             if rec["bibtex_source"] != "m2_bibtex":
                 skipped_train["missing_bibtex"] += 1
                 continue
@@ -717,6 +723,7 @@ def run_training(
     summary = {
         "dataset_dir": str(dataset_dir),
         "dataset_schema_version": SCHEMA_VERSION,
+        "label_provenance": manifest["label_provenance"],
         "skipped_train_labels": dict(skipped_train),
         "training_pair_budget": {"target_max_pairs_per_paper": MAX_TRAIN_PAIRS_PER_PAPER, "capped_papers": capped_papers},
         "features": FEATURE_NAMES,

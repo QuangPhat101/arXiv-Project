@@ -1,4 +1,4 @@
-"""End-to-End Milestone 2 & Milestone 3 Pipeline Runner.
+"""Parse and export the five working tables for Milestones 1 and 2.
 
 Assigned to: Bảo
 Usage:
@@ -10,11 +10,10 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -23,11 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
 from src.parser import parse_version
-from src.bibtex_parser import (
-    parse_version_bibtex,
-    normalize_title_for_matching,
-    build_cross_version_citation_map,
-)
+from src.bibtex_parser import build_cross_version_citation_map, parse_version_bibtex
 
 logging.basicConfig(
     level=logging.INFO,
@@ -213,7 +208,6 @@ def run_pipeline(data_dir: Path, output_dir: Path, workers: int = 4, sample_n: O
     elements_dict = {}
     hierarchy_rows = []
     bibtex_rows = []
-    paper_refs_map = {}
 
     completed = 0
     with ProcessPoolExecutor(max_workers=workers) as executor:
@@ -227,11 +221,7 @@ def run_pipeline(data_dir: Path, output_dir: Path, workers: int = 4, sample_n: O
             if res["paper_meta"]:
                 papers_rows.append(res["paper_meta"])
             
-            refs = res["references"]
-            if refs:
-                references_rows.extend(refs)
-                aid = refs[0]["arxiv_id"]
-                paper_refs_map[aid] = refs
+            references_rows.extend(res["references"])
             
             for el in res["elements"]:
                 eid = el[0]
@@ -248,78 +238,19 @@ def run_pipeline(data_dir: Path, output_dir: Path, workers: int = 4, sample_n: O
     logger.info("  Total hierarchy edges: %d", len(hierarchy_rows))
     logger.info("  Total bibtex entries: %d", len(bibtex_rows))
 
-    # Build predictions
-    logger.info("Generating predictions table with candidate ranking and publication partition...")
-    unique_aids = sorted(list(set(b["arxiv_id"] for b in bibtex_rows)))
-    n_total = len(unique_aids)
-    n_train = int(n_total * 0.8)
-    n_valid = int(n_total * 0.1)
-
-    train_set = set(unique_aids[:n_train])
-    valid_set = set(unique_aids[n_train:n_train + n_valid])
-    test_set = set(unique_aids[n_train + n_valid:])
-
-    predictions_rows = []
-    for b in bibtex_rows:
-        aid = b["arxiv_id"]
-        ckey = b["citation_key"]
-        norm_title = normalize_title_for_matching(b.get("title", ""))
-
-        if aid in test_set:
-            partition = "test"
-        elif aid in valid_set:
-            partition = "valid"
-        else:
-            partition = "train"
-
-        refs = paper_refs_map.get(aid, [])
-        best_gt = None
-        best_score = 0.0
-        cands = []
-
-        tokens_a = set(norm_title.split())
-        for r in refs:
-            r_aid = r["ref_arxiv_id"]
-            tokens_b = set(normalize_title_for_matching(r.get("ref_title", "")).split())
-            score = len(tokens_a & tokens_b) / max(len(tokens_a), len(tokens_b)) if tokens_a and tokens_b else 0.0
-            cands.append((r_aid, score))
-            if score > best_score:
-                best_score = score
-                best_gt = r_aid
-
-        cands.sort(key=lambda x: x[1], reverse=True)
-        top5 = [c[0] for c in cands[:5]]
-        while len(top5) < 5:
-            top5.append(None)
-
-        predictions_rows.append({
-            "arxiv_id": str(aid),
-            "partition": str(partition),
-            "citation_key": str(ckey),
-            "groundtruth_arxiv_id": str(best_gt) if best_score >= 0.70 else None,
-            "cand_1": top5[0],
-            "cand_2": top5[1],
-            "cand_3": top5[2],
-            "cand_4": top5[3],
-            "cand_5": top5[4],
-        })
-
-    logger.info("Built %d prediction rows.", len(predictions_rows))
-
     # Export Parquet tables
-    logger.info("Writing 6 canonical Parquet tables to: %s", output_dir)
+    logger.info("Writing five Parquet tables to: %s", output_dir)
     pd.DataFrame(papers_rows).to_parquet(output_dir / "papers.parquet", index=False)
     pd.DataFrame(references_rows).to_parquet(output_dir / "references.parquet", index=False)
     pd.DataFrame(list(elements_dict.values()), columns=["element_id", "arxiv_id", "kind", "content"]).to_parquet(output_dir / "elements.parquet", index=False)
     pd.DataFrame(hierarchy_rows, columns=["arxiv_id", "version", "element_id", "parent_id"]).to_parquet(output_dir / "hierarchy.parquet", index=False)
     pd.DataFrame(bibtex_rows).to_parquet(output_dir / "bibtex.parquet", index=False)
-    pd.DataFrame(predictions_rows).to_parquet(output_dir / "predictions.parquet", index=False)
 
-    logger.info("All 6 Parquet tables successfully created at: %s", output_dir)
+    logger.info("Five Parquet tables written to: %s", output_dir)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Milestone 2 & 3 Pipeline Runner")
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Directory containing paper directories")
     parser.add_argument("--output-dir", type=Path, default=Path("export_m2"), help="Output directory for Parquet tables")
     parser.add_argument("--workers", type=int, default=4, help="Number of concurrent worker processes")

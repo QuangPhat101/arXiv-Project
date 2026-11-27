@@ -21,6 +21,8 @@ import random
 import re
 import shutil
 import subprocess
+import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -28,9 +30,18 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.matching import extract_last_names, normalize_title
+
 SEED = 42
 GROUP_AUTO_TARGET = 1_998
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+AGENT_REVIEW_STATUSES = {
+    "source_and_pool_match", "explicit_id_outside_pool", "arxiv_metadata_outside_pool",
+    "non_article_source", "no_matching_crawled_reference",
+}
 
 PHAT_DIR = ROOT / "data/phat_labels_seed42_2026_11_26"
 KHOI_DIR = ROOT / "parquet_khoi/khoi_model_training_handoff_CONFIRMED"
@@ -87,7 +98,7 @@ MEMBER_SOURCES: Dict[str, Dict[str, Any]] = {
         "git_ref": "origin/labels/khanh-auto-labeling",
         "manual_csv": "export_khanh/hand_labeled_5_papers_khanh.csv",
         "auto_csv": "export_khanh/auto_labeled_khanh.csv",
-        "bibtex_sources": [ROOT / "parquet_Khanh/bibtex_khanh_500.parquet"],
+        "bibtex_sources": [ROOT / "parquet_Khanh/bibtex_khanh_500.parquet", ROOT / "parquet_Khanh/bibtex_m2_recovered.csv"],
         "ref_parquets": [ROOT / "parquet_Khanh/references_khanh_500.parquet"],
         "ref_json_dirs": [],
     },
@@ -100,7 +111,9 @@ LABEL_COLUMNS = [
     "label_status",
     "usable_label",
     "label_kind",
+    "label_provenance",
 ]
+LABEL_METADATA = ["label_title", "label_authors", "label_year"]
 BIBTEX_COLUMNS = [
     "arxiv_id",
     "citation_key",
@@ -188,7 +201,7 @@ def _clean_str(val: Any) -> str:
     return "" if text.lower() in ("nan", "none") else text
 
 
-def _standardize_member_labels(member: str, cfg: Dict[str, Any]) -> Tuple[pd.DataFrame, set[str]]:
+def _standardize_member_labels(member: str, cfg: Dict[str, Any], allow_agent_reviewed: bool) -> Tuple[pd.DataFrame, set[str]]:
     rows: List[Dict[str, Any]] = []
     member_papers: set[str] = set()
     seen = set()
@@ -213,9 +226,6 @@ def _standardize_member_labels(member: str, cfg: Dict[str, Any]) -> Tuple[pd.Dat
                 status = "none"
             if status not in ("matched", "none", "unresolved", "needs_review"):
                 raise ValueError(f"{member}/{aid}/{key}: unexpected label status {status!r}")
-            external = _clean_str(r.get("external_arxiv_id"))
-            if kind == "manual" and status == "none" and external:
-                gt, status = external, "matched"
             if status == "matched" and not gt:
                 raise ValueError(f"{member}/{aid}/{key}: matched label requires an arXiv ID")
             if status == "none" and gt:
@@ -223,7 +233,12 @@ def _standardize_member_labels(member: str, cfg: Dict[str, Any]) -> Tuple[pd.Dat
             verified = _clean_str(r.get("human_verified")).lower() == "true"
             if "human_verified" not in r:
                 verified = cfg.get("manual_finalized", False)
-            usable = status in ("matched", "none") and (kind == "auto" or verified)
+            provenance = "auto" if kind == "auto" else "human" if verified else "pending"
+            if provenance == "pending" and r.get("agent_review_status") in AGENT_REVIEW_STATUSES:
+                provenance = "agent_reviewed"
+            usable = status in ("matched", "none") and (
+                provenance in ("auto", "human") or (allow_agent_reviewed and provenance == "agent_reviewed")
+            )
             rows.append({
                 "paper_arxiv_id": aid,
                 "citation_key": key,
@@ -231,8 +246,12 @@ def _standardize_member_labels(member: str, cfg: Dict[str, Any]) -> Tuple[pd.Dat
                 "label_status": status,
                 "usable_label": bool(usable),
                 "label_kind": kind,
+                "label_provenance": provenance,
+                "label_title": _clean_str(r.get("citation_title")),
+                "label_authors": parse_authors(r.get("citation_authors")),
+                "label_year": parse_year(r.get("citation_year")),
             })
-    return pd.DataFrame(rows, columns=LABEL_COLUMNS), member_papers
+    return pd.DataFrame(rows, columns=LABEL_COLUMNS + LABEL_METADATA), member_papers
 
 
 def _standardize_member_bibtex(cfg: Dict[str, Any], member_papers: set[str]) -> pd.DataFrame:
@@ -338,18 +357,94 @@ def _standardize_member_references(cfg: Dict[str, Any], member_papers: set[str])
     return pd.DataFrame(rows, columns=REF_COLUMNS)
 
 
-def standardize_all_members(members_dir: Path) -> None:
+def align_and_complete_labels(labels: pd.DataFrame, bibtex: pd.DataFrame, refs: pd.DataFrame) -> pd.DataFrame:
+    keys = set(zip(bibtex["arxiv_id"], bibtex["citation_key"]))
+    def label_signature(row):
+        return row["label_kind"], row["label_status"], row["groundtruth_arxiv_id"], row["usable_label"]
+
+    occupied = {(row["paper_arxiv_id"], row["citation_key"]): label_signature(row)
+                for row in labels.to_dict("records") if (row["paper_arxiv_id"], row["citation_key"]) in keys}
+    by_title = defaultdict(list)
+    for row in bibtex.to_dict("records"):
+        by_title[row["arxiv_id"], normalize_title(row["title"])].append(row)
+
+    rows = []
+    recovered = 0
+    missing_manual = []
+    for row in labels.to_dict("records"):
+        aid, key = row["paper_arxiv_id"], row["citation_key"]
+        if (aid, key) not in keys:
+            title = normalize_title(row["label_title"])
+            authors = extract_last_names(row["label_authors"])
+            matches = [candidate for candidate in by_title[aid, title]
+                       if title and authors & extract_last_names(candidate["authors"])
+                       and (pd.isna(row["label_year"]) or pd.isna(candidate["year"])
+                            or abs(row["label_year"] - candidate["year"]) <= 1)]
+            if len(matches) == 1:
+                canonical = (aid, matches[0]["citation_key"])
+                if occupied.get(canonical) == label_signature(row):
+                    recovered += 1
+                    continue
+                if canonical not in occupied:
+                    row["citation_key"] = canonical[1]
+                    occupied[canonical] = label_signature(row)
+                    recovered += 1
+                    rows.append(row)
+                    continue
+            if row["label_kind"] == "manual":
+                missing_manual.append((aid, key))
+            continue
+        rows.append(row)
+
+    refs_by_title = defaultdict(list)
+    refs_by_paper = defaultdict(set)
+    for ref in refs.to_dict("records"):
+        refs_by_title[ref["arxiv_id"], normalize_title(ref["ref_title"])].append(ref)
+        refs_by_paper[ref["arxiv_id"]].add(ref["ref_arxiv_id"])
+
+    auto_papers = set(labels.loc[labels["label_kind"] == "auto", "paper_arxiv_id"])
+    inferred = 0
+    for entry in bibtex[bibtex["arxiv_id"].isin(auto_papers)].to_dict("records"):
+        aid, key = entry["arxiv_id"], entry["citation_key"]
+        if (aid, key) in occupied:
+            continue
+        raw_ids = re.findall(r"(?:arxiv\.org/(?:abs|pdf)/|arxiv[:.])\s*(\d{4}\.\d{4,5})",
+                             f"{entry['url']} {entry['doi']}", re.I)
+        matches = set(raw_ids) & refs_by_paper[aid]
+        if not matches:
+            title = normalize_title(entry["title"])
+            authors = extract_last_names(entry["authors"])
+            if title:
+                matches = {candidate["ref_arxiv_id"] for candidate in refs_by_title[aid, title]
+                           if authors & extract_last_names(candidate["ref_authors"])}
+        gt = next(iter(matches)) if len(matches) == 1 else ""
+        rows.append({"paper_arxiv_id": aid, "citation_key": key, "groundtruth_arxiv_id": gt,
+                     "label_status": "matched" if gt else "none", "usable_label": True,
+                     "label_kind": "auto", "label_provenance": "auto_bibtex_completion"})
+        inferred += 1
+
+    print(f"Recovered keys: {recovered}, automatic completions: {inferred}, missing manual keys: {missing_manual}", flush=True)
+    return pd.DataFrame(rows, columns=LABEL_COLUMNS)
+
+
+def standardize_all_members(members_dir: Path, allow_agent_reviewed: bool = False) -> None:
     """Export uniform {labels,bibtex,references}.parquet for every member."""
     for member, cfg in MEMBER_SOURCES.items():
         out_dir = members_dir / member
         out_dir.mkdir(parents=True, exist_ok=True)
-        labels_df, papers = _standardize_member_labels(member, cfg)
+        labels_df, papers = _standardize_member_labels(member, cfg, allow_agent_reviewed)
         bibtex_df = _standardize_member_bibtex(cfg, papers)
         refs_df = _standardize_member_references(cfg, papers)
         missing = papers - set(refs_df["arxiv_id"])
         if missing:
             raise ValueError(f"{member}: {len(missing)} papers lack candidate references, including {sorted(missing)[:5]}")
 
+        print(f"[{member}] Aligning label and BibTeX keys", flush=True)
+        labels_df = align_and_complete_labels(labels_df, bibtex_df, refs_df)
+        expected_counts = {"manual": 5, "auto": 513 if member == "phat" else 495}
+        actual_counts = labels_df.groupby("label_kind")["paper_arxiv_id"].nunique().to_dict()
+        if actual_counts != expected_counts:
+            raise ValueError(f"{member}: incomplete label coverage: {actual_counts}, expected {expected_counts}")
         labels_df.to_parquet(out_dir / "labels.parquet", index=False)
         bibtex_df.to_parquet(out_dir / "bibtex.parquet", index=False)
         refs_df.to_parquet(out_dir / "references.parquet", index=False)
@@ -391,13 +486,18 @@ def build_unified_dataset(
             papers = sorted(sub["paper_arxiv_id"].unique())
             if partitions.keys() & set(papers):
                 raise ValueError(f"Overlapping papers in {member}/{kind}")
+            if kind == "manual":
+                label_counts = sub.groupby("paper_arxiv_id")["usable_label"].sum()
+                short = label_counts[label_counts < 20].to_dict()
+                if short:
+                    raise ValueError(f"{member}: need at least 20 reviewed labels per manual paper: {short}")
             random.Random(SEED).shuffle(papers)
             for idx, aid in enumerate(papers):
                 partitions[aid] = {
                     "paper_arxiv_id": aid,
                     "member": member,
                     "label_kind": kind,
-                    "partition": "train" if kind == "auto" else ("valid" if idx < 2 else "test"),
+                    "partition": ("valid", "test")[idx] if idx < 2 else "train",
                     "references_available": aid in available_refs,
                 }
 
@@ -435,6 +535,8 @@ def build_unified_dataset(
 
         gt = _clean_str(item.get("groundtruth_arxiv_id"))
         has_refs = bool(item["references_available"])
+        if gt and (aid, gt) not in ref_pair_set:
+            raise ValueError(f"Matched arXiv ID {gt} missing from the candidate pool for {aid}/{ckey}")
         final_labels.append({
             "paper_arxiv_id": aid,
             "citation_key": ckey,
@@ -448,6 +550,7 @@ def build_unified_dataset(
             "gt_in_pool": ((aid, gt) in ref_pair_set) if (has_refs and gt) else False,
             "member": item["member"],
             "label_kind": item["label_kind"],
+            "label_provenance": item["label_provenance"],
             "partition": item["partition"],
             "bibtex_source": src,
             "is_cited": bib["is_cited"] if bib else None,
@@ -497,6 +600,8 @@ def build_unified_dataset(
         "total_reference_rows": int(len(refs_merged)),
         "auto_papers": auto_papers,
         "auto_papers_target": GROUP_AUTO_TARGET,
+        "label_provenance": {str(kind): int(count) for kind, count in
+                             labels_out.loc[labels_out["usable_label"], "label_provenance"].value_counts().items()},
         "bibtex_resolution": resolution_counts,
         "coverage": coverage,
     }
@@ -526,9 +631,10 @@ def main() -> None:
     parser.add_argument("--members-dir", type=Path, default=ROOT / "data/members")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "kaggle_dataset")
     parser.add_argument("--sync-dir", type=Path, default=ROOT / "data/group_training_seed42")
+    parser.add_argument("--allow-agent-reviewed", action="store_true", help="Include agent-reviewed draft labels with their provenance")
     args = parser.parse_args()
 
-    standardize_all_members(args.members_dir)
+    standardize_all_members(args.members_dir, args.allow_agent_reviewed)
     build_unified_dataset(args.members_dir, args.output_dir, args.sync_dir)
     write_training_archive(args.output_dir)
 
